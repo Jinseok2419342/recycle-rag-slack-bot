@@ -31,7 +31,9 @@
      - 클라우드 환경이 «버릴지도 (분리배출 RAG 봇)» 이면 설치 스크립트가 `venv` 를 만들어 둠 — 됐는지 확인해 아래 «클라우드 환경» 줄에 적기.
        없으면 `python3 -m venv venv && ./venv/bin/python -m pip install -q -r requirements.txt` (약 15초 · pypdf 6.21.4 고정)
      - 사례집 PDF 가 없으면 `curl -sS -L -o "data/분리배출_QA사례100_2026.pdf" "https://www.kwaste.or.kr/lib/fileDownload.php?save_file=attachment_202605081124500.29008db5d7c61e61718f7a154de14539.pdf&file_name=QA100.pdf"` → **68,862,868바이트**인지 확인 (첫 시도가 연결 리셋이면 한 번 더)
-     - 기본(Default) 환경이면 사례집이 막힘 → 코드 작업은 되지만 `--check` · `offline_check` 를 못 돌림 → 사용자에게 «버릴지도» 환경으로 새 세션을 열지 물음
+     - 기본(Default) 환경이면 사례집이 막힘 → `get_environment` 로 확인하고 «버릴지도 (분리배출 RAG 봇)» 로 `switch_environment`(네트워크만 · 사용자 승인 카드 한 번)를 제안.
+       옮겨도 설치 스크립트는 안 도니 venv 는 바로 아래 명령으로 직접. 사용자가 거절하면 코드 작업만 하고 `--check` · `offline_check` 는 사용자 PC 에서
+     - **사용자 PC(RTX 3070)에서 Claude Code 를 연 경우엔 이 환경 확인이 필요 없음** — PC 의 venv · 사례집 · Ollama 를 그대로 쓰고 측정(계획 6장)까지 같은 세션에서 가능
      - 출발점 확인: `./venv/bin/python build_index.py --check` (15항목 ✅ · 456청크) · `./venv/bin/python tests/offline_check.py` (ALL OK)
   2. **사용자에게 한 번에 확인** (첫 답에서): ① 이번 세션에 GPU PC 를 쓸 수 있나 ② 판정 목표치(계획 6-3 · 사진 15/20 등) 확정
      ③ 테스트 사진을 저장소에 커밋할지 ④ 슬랙 앱에 `files:read` 추가 · 재설치 가능한지 ⑤ 사진 크기 줄이기용 Pillow(새 패키지 · 지금 없음)를 들일지
@@ -66,7 +68,8 @@
   설치 스크립트(맨 위에 `venv` 만들고 `requirements.txt` 설치). 이 환경으로 시작한 세션에서는 사례집을 받아
   `./venv/bin/python build_index.py --check` · `tests/offline_check.py` · `questions.py` 까지 돌릴 수 있음 (모델 · 슬랙은 여전히 안 됨).
   설치 스크립트는 같은 명령을 손으로 돌려 확인했지만, 새 세션에서 자동으로 도는 것은 아직 못 봄 →
-  **다음 세션은 이 환경으로 시작** (사용자가 세션을 열 때 고름). 자동 설치가 됐는지는 «다음 세션 시작 순서» 1번에서 확인해 이 줄에 적을 것
+  다음 세션도 이 환경이면 좋지만(세션 제목줄의 클라우드 환경 메뉴), **사용자가 따로 고를 필요는 없음** — 기본 환경으로 열리면 «다음 세션 시작 순서» 1번에서 옮기자고 제안.
+  자동 설치가 됐는지는 그 1번에서 확인해 이 줄에 적을 것
 - **이미지를 받을 때** — 채팅에 붙인 이미지는 폭 2000px JPG 로 줄어듦 → 문서에 넣을 원본은 **ZIP 으로** 받기 (scratchpad 의 새 폴더에 풀고 `__MACOSX` 는 버림)
 - **2026-11-19 에 한 일** — CLAUDE.md 깨진 곳 복구 · 미결 2 · 3 · 8 반영 · LangSmith 3장 + 슬랙 2장 캡처(`docs/*.png` · README 2 · 4번) ·
   `not_done_plan.md` 삭제 · 옛 문장 정리 · 이 절 추가. 모두 사용자 계정으로 `main` 에 반영
