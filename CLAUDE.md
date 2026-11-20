@@ -13,8 +13,20 @@
 
 ## ▶ 다음 세션은 여기부터 (2026-11-20 기준)
 
-**상태: 완료.** 수업 PDF 의 필수 요건과 14주차 제출물(코드 + README + LangSmith 추적 캡처)이 모두 `main` 에 있습니다.
-급한 일은 없습니다 — 사용자가 새로 요청하는 것부터 하면 됩니다.
+**상태: 필수 요건은 완료 · 다음 작업은 «사진으로 묻기» (실험 계획 단계 · 코드 미반영).**
+수업 PDF 의 필수 요건과 14주차 제출물(코드 + README + LangSmith 추적 캡처)은 모두 `main` 에 있습니다.
+
+- **▶ 다음 작업 — 사진으로 묻기** (2026-11-20 사용자 결정 · 계획 문서 [docs/photo-feature-plan.md](docs/photo-feature-plan.md))
+  - 슬랙에 사진 → 비전 모델이 **품목 이름**을 붙임 → 지금 RAG(문서 근거 + 출처)로 답. 사진은 «이름 붙이기» 에만, 답은 문서에서
+  - **합격선 = 수업 기본 `gemma3:4b` 보다 좋을 것** (같은 인덱스 · 같은 문항). 지금 생성 모델(A.X)보다 못해도 됨 —
+    A.X 와 비교하거나 «A.X 보다 낮음» 을 표시하지 않음 (사용자: «아직 제출 전»)
+  - 후보: ⭐ `gemma4:e4b` · `qwen3.5:4b` (한 모델로 답 + 사진) / 보험: 지금 생성 모델 + `qwen3.5:0.8b` (사진 이름만). 나머지 · 기각 이유는 계획 문서 4장 · 부록
+  - **문서 방침 (사용자 결정)**: 채택하면 README · CONTEXT · docs 를 **새 모델 기준으로 처음부터** 씀 — A.X 는 언급하지 않아도 되고, 비교군은 `gemma3:4b`.
+    단 숫자 · 캡처는 **전부 새 모델로 다시 재고 다시 찍음** (옛 숫자를 새 모델 이름으로 옮겨 적지 않음 — 실측 원칙). 고칠 곳 목록은 계획 문서 7장
+  - **첫 단계 (GPU PC · 사용자가 돌림)**: 계획 문서 6장 — `gemma3:4b` 30문항 기준선 → 후보 30문항 · VRAM → 사진 20장(+ 범위 밖 4장).
+    판정 규칙(6-3)은 측정 전에 사용자와 확정. Qwen3.5 생각 모드를 끄는 코드 한 줄이 필요하면 **확인받고** 반영
+  - 코드 · 슬랙 앱 설정은 **아직 손대지 않음** — 실험으로 모델을 정한 뒤 작업 브랜치에서 구현, `main` 은 실측 · 캡처까지 끝난 뒤
+  - 일정: 13주차(11/27) 중간 점검 · **14주차(12/4) 최종 제출** · 제출 저장소(수업 · 이 저장소)는 사용자가 아직 안 정함
 
 - **저장소 두 곳** (2026-11-20)
   - **이 저장소 `recycle-rag-slack-bot` 이 원본** — 앞으로의 수정은 여기에만
@@ -26,7 +38,7 @@
   기준 문서(수업 저장소): [`11-06/2교시_분할_메타데이터와_프로젝트_착수.pdf`](https://github.com/Jinseok2419342/langchain-2026-20241499/blob/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/2%EA%B5%90%EC%8B%9C_%EB%B6%84%ED%95%A0_%EB%A9%94%ED%83%80%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%99%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%B0%A9%EC%88%98.pdf) §4-1 ~ §4-4 (23 ~ 29쪽) · [`11-06/project_template/`](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/project_template) 의 `README.md` · `CONTEXT.md`.
   README 끝의 «필수 요건 대조» 표 · «제출 체크리스트» 가 이것과 맞춰져 있습니다(2026-11-19 전부 ✅ 확인).
   모델 성능을 더 깊게 재검증하거나, 메인 PC(한글 경로)에서 다시 세팅할 필요는 **없다** 고 사용자가 결정함 — 같은 사양의 보조 PC 에서 처음부터 세팅해 통과했음.
-- **남은 것: 없음.** 시나리오 8(Ollama 를 끈 상태의 오류 처리)은 SPEC 6-5 에 스스로 적어 둔 점검 항목일 뿐 **수업 요건이 아님** — 사용자가 원할 때만.
+- **남은 것**: 위 «사진으로 묻기» (선택 기능 · 사용자가 하기로 함). 시나리오 8(Ollama 를 끈 상태의 오류 처리)은 SPEC 6-5 에 스스로 적어 둔 점검 항목일 뿐 **수업 요건이 아님** — 사용자가 원할 때만.
 - **사용자와 일하는 방식**
   - 한국어로 **쉽게 · 한 단계씩**. 화면(LangSmith · 슬랙) 조작을 안내할 때는 사용자 화면 캡처를 받아 실제 버튼 이름으로 안내
   - 커밋 작성자는 **사용자 계정** — 기존 커밋과 같은 작성자(`git log --format='%an <%ae>' -3` 로 확인 · `Jinseok2419342`)를
@@ -54,6 +66,7 @@
     `build_index.py --check` 15항목 ✅ · 456청크 / `tests/offline_check.py` ALL OK (40항목) / `questions.py` ✅ → README 5번 머리에 기록.
     pypdf 7.1.1 로는 `--check` 실패(457청크 · ITEM_DROP 3/4 · 종료 코드 1)도 재확인. 모델 단계(임베딩 · 답 · 슬랙)는 로직이 그대로라
     다시 안 돌림 — 보조 PC 를 쓸 수 있을 때 원하면 `build_index.py` · `rag_backend.py 검색 "선글라스"` 로 확인
+  - 다음 기능 검토 → **사진으로 묻기** 로 정함 (웹 검색 보충안은 기각) · 모델 후보 조사 → [docs/photo-feature-plan.md](docs/photo-feature-plan.md) (코드 미반영)
 
 ## 진행 기록 (2026-11-17 첫 실행 · 2026-11-19 마무리)
 
@@ -62,6 +75,7 @@
 > 기본값 채택(`basic` · `year_bonus 0.09` · `base`)과 문서 갱신(README 5 · 6 · CONTEXT 부록 D ~ F · scenarios)까지 끝났습니다.
 > ★ **2026-11-19 캡처 5장을 README 에 넣음** (LangSmith 3장 · 슬랙 2장 · `docs/*.png` · SPEC 13-1 l) → 수업 PDF 필수 요건 전부 충족.
 > **남은 것: 없음** (시나리오 8 은 자체 점검 항목 · 선택). 미결 8 은 README 에 안내 한 줄로 정리(2026-11-19).
+> → 2026-11-20 에 다음 작업으로 «사진으로 묻기» 를 정함 (맨 위 «▶ 다음 작업»).
 
 | 단계 | 상태 |
 |---|---|
@@ -127,6 +141,7 @@
 - 모델 설정은 전용 키 **`RECYCLE_*` + 코드 기본값**. 루트 `.env` 의 `MODEL` · `EMBED_MODEL` 은 건드리지 않음
 - **OpenAI 백엔드 제거** — Ollama 만
 - ✅ **독립 저장소 `recycle-rag-slack-bot` 으로 옮김** — 히스토리 보존 · 이 저장소가 원본 · 수업 저장소 `mini_project/` 는 동결 (2026-11-20)
+- ✅ **다음 기능 = 사진으로 묻기** · 합격선은 `gemma3:4b` 보다 좋을 것 · 채택하면 문서를 새 모델 기준으로 다시 씀(A.X 언급 불필요 · 숫자 · 캡처는 새로 실측) (2026-11-20)
 - ✅ LangSmith 프로젝트 이름은 `config.py` 가 `recycle-bot-20241499` 로 지정(`RECYCLE_LANGSMITH_PROJECT` 로 바꿀 수 있음) — 2026-11-17 승인 · README 체크리스트 · CONTEXT «관측» 도 고침 (미결 1)
 
 ## 폴더 구조
@@ -150,6 +165,7 @@ recycle-rag-slack-bot/             ← git 저장소 맨 위 (github.com/Jinseok
 ├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (40항목)
 ├── docs/architecture.md           ← 구성도 · 프로세스 · 흐름도 (Mermaid 8개)
 ├── docs/scenarios.md              ← 가상 시나리오 8개 (Mermaid 8개)
+├── docs/photo-feature-plan.md     ← ▶ 다음 작업: 사진으로 묻기 — 모델 후보 · 실험 계획 · 판정 규칙 · 고칠 곳 (2026-11-20 · 계획)
 ├── docs/*.png                     ← 캡처 5장 (trace-rag · trace-retriever · trace-build · slack-thread · slack-compare)
 ├── scratch_eval.py                ← 10주차 생성 모델 비교 스크립트 (CONTEXT 부록 C 재현용 · 그대로 둠)
 ├── index_recycle/                 ← build_index.py 가 만듦 (gitignore · 보조 PC 에만 있음)
@@ -222,6 +238,7 @@ $env:PYTHONUTF8=1
 | `hf.co/mykor/KURE-v1-gguf:Q8_0` | ★ **임베딩** (고려대 KURE-v1 · 1024차원 · 0.6GB) | 위와 같음 |
 | `gemma3:4b` · `qwen3-embedding:0.6b` | 수업 기본 — **비교 기준으로만** | 설치됨 |
 | `exaone3.5:2.4b` | 생성 모델 대체용 (`RECYCLE_MODEL` 로 교체 · 인덱스 재생성 불필요) | 설치됨 |
+| `gemma4:e4b` · `qwen3.5:4b` · `qwen3.5:0.8b` | 사진 기능 후보 ([docs/photo-feature-plan.md](docs/photo-feature-plan.md) 6장 실험용) | **아직 pull 안 함** |
 
 - 루트 `.env` (= 저장소 맨 위 · 값은 출력하지 말 것 · 키 이름은 [.env.example](.env.example) · 수업 저장소의 루트 `.env` 를 그대로 복사해 써도 됨):
 
