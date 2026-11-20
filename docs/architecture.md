@@ -103,8 +103,8 @@ flowchart TD
 
 | 파일 | 줄 수 | 혼자 실행하면 |
 |---|---|---|
-| `config.py` | 59 | (실행 파일 아님) |
-| `build_index.py` | 612 | `--show` 청크 보기 · `--check` 수용 기준 검사 · 인자 없이 인덱스 생성 |
+| `config.py` | 63 | (실행 파일 아님) |
+| `build_index.py` | 618 | `--show` 청크 보기 · `--check` 수용 기준 검사 · 인자 없이 인덱스 생성 |
 | `rag_backend.py` | 347 | 터미널에서 질문 → 검색 결과 + 답 (슬랙 없이 RAG 만 확인) |
 | `slack_rag_bot.py` | 244 | 봇 시작 |
 | `questions.py` | 141 | 문항의 정답 위치가 실제 청크에 있는지 검사 |
@@ -328,7 +328,7 @@ flowchart LR
 각 단계가 다음 단계의 문제를 가려 줍니다 — 터미널(`rag_backend.py`)에서 제대로 답하면, 봇이 답을 안 할 때 범인은 슬랙 쪽입니다.
 
 ```powershell
-cd mini_project
+cd recycle-rag-slack-bot             # 저장소 맨 위
 $env:PYTHONUTF8=1
 python build_index.py --check        # 임베딩 없이 파서 검사
 python build_index.py                # 인덱스 생성

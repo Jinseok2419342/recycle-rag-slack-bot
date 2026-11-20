@@ -3,6 +3,16 @@
 > 이 문서는 **구현을 맡은 AI(또는 사람)가 이 문서만 보고 코드를 끝까지 만들 수 있게** 쓴 작업 지시서입니다.
 > 채점 대상 명세는 [README.md](README.md) · [CONTEXT.md](CONTEXT.md) 이고, 이 문서는 그 둘을 **코드 수준으로 풀어 쓴 것**입니다.
 > 작성 2026-11-13. 이 문서의 «실측» 은 같은 날 두 PDF 에 시험 파서를 **읽기 전용으로** 돌려 얻은 값입니다(코드 파일은 아직 없음).
+>
+> 📦 **2026-11-20 독립 저장소로 옮김** — 이 문서는 수업 저장소의 `mini_project/` 폴더에서 쓴 구현 지시서입니다.
+> 옮기면서 **따라 실행하는 경로만** 이 저장소 기준으로 고쳤고, 설계 · 결정 · 실측 기록은 그대로입니다. 나머지 표기는 아래처럼 바꿔 읽습니다.
+>
+> | 문서 속 표기 | 이 저장소에서 |
+> |---|---|
+> | `mini_project/` | 저장소 맨 위 |
+> | `..\venv\Scripts\python.exe` · 루트 `.env` | `.\venv\Scripts\python.exe` · 저장소 맨 위의 `.env` |
+> | `11-06/` · `11-13/` · `10-30/` (수업 실습 · 강의 자료) | [수업 저장소](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3) 에만 있음 — 이 저장소에는 없음 |
+> | 커밋 형식 `mini_project: …` | 접두어 없이 한국어 |
 
 ---
 
@@ -12,7 +22,7 @@
 
 | 순위 | 문서 | 역할 |
 |---|---|---|
-| 1 | 수업 자료 `11-06/2교시_분할_메타데이터와_프로젝트_착수.pdf` §4 | **필수 요건** — 어기면 감점 (아래 1장에 전부 옮김) |
+| 1 | 수업 자료 [`11-06/2교시_분할_메타데이터와_프로젝트_착수.pdf`](https://github.com/Jinseok2419342/langchain-2026-20241499/blob/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/2%EA%B5%90%EC%8B%9C_%EB%B6%84%ED%95%A0_%EB%A9%94%ED%83%80%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%99%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%B0%A9%EC%88%98.pdf) §4 (수업 저장소) | **필수 요건** — 어기면 감점 (아래 1장에 전부 옮김) |
 | 2 | [README.md](README.md) · [CONTEXT.md](CONTEXT.md) | 채점 대상 명세 — 기능 · 모델 · 설계 약속 |
 | 3 | 이 문서 (SPEC.md) | 구현 방법 — 2번과 다르게 정한 곳은 **13장에 이유와 함께** 적음 |
 | 4 | [CLAUDE.md](CLAUDE.md) | 인수인계 요약 · 현재 상태 — 2026-11-13 에 이 명세에 맞춰 갱신함. 어긋나면 이 문서가 우선 |
@@ -31,7 +41,7 @@
 
 ### 0-3. 작업 규칙 (구현하는 AI 에게)
 
-- 응답 · 주석 · 커밋 메시지는 **한국어**. 커밋 형식은 기존대로 `mini_project: …`
+- 응답 · 주석 · 커밋 메시지는 **한국어**. 커밋 형식은 수업 저장소에서는 `mini_project: …` · 독립 저장소에서는 접두어 없이
 - 숫자는 **직접 돌려서 얻은 것만** 문서에 적는다. 이 문서의 «시험 파서 실측» 값도 구현 후 **다시 재서** 맞는지 확인한다
 - README · CONTEXT 에 같은 숫자가 양쪽에 있으면 **둘 다** 고친다
 - `11-06/` · `11-13/` 의 파일과 인덱스는 수정하지 않는다 (읽기 · 복사만)
@@ -95,7 +105,7 @@ git status --short      # .env 가 목록에 없어야 함
 0. **gitignore 된 것은 클론에 따라오지 않습니다** — `venv/` · 루트 `.env` · `index*/` · 사례집 PDF. 시작 전에 있는지 확인하고, 사례집 PDF 가 없으면 CLAUDE.md «문서 받기» 명령으로 받습니다.
 
    ```powershell
-   Test-Path ..\.env, ..\venv\Scripts\python.exe, "data\분리배출_QA사례100_2026.pdf"   # True True True
+   Test-Path .env, venv\Scripts\python.exe, "data\분리배출_QA사례100_2026.pdf"         # True True True
    ```
 
 1. **모델 2개가 개발 PC 의 Ollama 에 없습니다.** `ollama list` 에는 `qwen3-embedding:0.6b` · `gemma3:4b` · `exaone3.5:2.4b` 만 있습니다.
@@ -127,12 +137,12 @@ git status --short      # .env 가 목록에 없어야 함
 
 ### 2-3. 실행 위치
 
-모든 명령은 **`mini_project/` 에서** 실행합니다. PowerShell 이면 먼저 `$env:PYTHONUTF8=1`.
+모든 명령은 **저장소 맨 위에서** 실행합니다. PowerShell 이면 먼저 `$env:PYTHONUTF8=1`.
 
 ```powershell
-cd mini_project
+cd recycle-rag-slack-bot
 $env:PYTHONUTF8=1
-..\venv\Scripts\python.exe build_index.py --show
+.\venv\Scripts\python.exe build_index.py --show
 ```
 
 ---
@@ -142,7 +152,7 @@ $env:PYTHONUTF8=1
 ### 3-1. 만들 파일
 
 ```
-mini_project/
+recycle-rag-slack-bot/   ← 저장소 맨 위 (수업 저장소 시절엔 mini_project/)
 ├── config.py            ← 공용 상수 · 경로 · 환경 변수 (모든 파일이 맨 먼저 import)
 ├── faiss_io.py          ← 11-06/faiss_io.py 를 **그대로 복사** (한글 경로 대비 · 수정 금지)
 ├── build_index.py       ← M1 · PDF 2건 → 정리 → 구조 분할 → 메타데이터 → FAISS
@@ -152,14 +162,14 @@ mini_project/
 ├── evaluate.py          ← M4 · 검색 · 생성 실측 (CONTEXT 부록 갱신용)
 ├── requirements.txt     ← 설치 목록
 ├── .env.example         ← 루트 .env 에 있어야 할 키 **이름만** (값 없음 · `RECYCLE_*` 는 주석으로) — README 5번이 가리킴
-├── index_recycle/       ← build_index.py 가 만듦 (.gitignore 의 `mini_project/index*/` 에 걸림 · 커밋 안 됨)
+├── index_recycle/       ← build_index.py 가 만듦 (.gitignore 의 `/index*/` 에 걸림 · 커밋 안 됨)
 ├── eval_results/        ← evaluate.py 결과 (md · json) — 커밋함
 ├── tests/offline_check.py ← 모델 없이 코드 경로를 확인 (가짜 임베딩 · 가짜 LLM · 가짜 슬랙) — 13-1절
 └── docs/                ← 구성도(architecture.md · scenarios.md) + LangSmith · 슬랙 캡처 이미지 (M5)
 ```
 
 - `scratch_eval.py` 는 **그대로 둡니다** (CONTEXT 부록 C 의 재현 스크립트).
-- `faiss_io.py` 를 `sys.path` 로 끌어오지 않고 복사하는 이유: `mini_project/` 만으로 실행되게 하려고(README 5번을 따라 하는 사람은 `11-06/` 이 필요 없음). `11-13/` 도 같은 방식입니다.
+- `faiss_io.py` 를 `sys.path` 로 끌어오지 않고 복사하는 이유: `mini_project/` 만으로 실행되게 하려고(README 5번을 따라 하는 사람은 `11-06/` 이 필요 없음). `11-13/` 도 같은 방식입니다. — 덕분에 2026-11-20 독립 저장소로 옮길 때 코드는 안내 문구 말고 고칠 것이 없었습니다.
 - 10주차 3개 파일(`11-06/slack_bot_mode/`)을 **복사해서 고치는 것이 출발점**입니다. 구조 · 함수 이름 · 주석 말투를 유지합니다.
 
 ### 3-2. `config.py`
@@ -255,7 +265,7 @@ python build_index.py --check             # 4-10절 수용 기준을 assert 로 
 
 **`--mode recursive` 의 정의** — 분할 **하나만** 다르게 합니다. 구조 모드와 **같은 쪽**(4-2절에서 버리지 않는 쪽: 가이드라인 3~25 · 28~34쪽 30개 + 사례집 Q&A 쪽 29개)을 **같은 정리**(4-3절)로 다듬은 뒤, 쪽마다 줄을 `\n` 으로 이어 `RecursiveCharacterTextSplitter(400, 40, KO_SEPARATORS)` → 30자 미만 버림.
 메타데이터는 `source` · `page` · `year` · `doc_type`(쪽 범위로) · `chunk_id` · `splitter="recursive-400-40"` 만 (`item` · `material` · `qa_date` · `section` 없음). 실측 기대값: **135청크 · 평균 308자**.
-`--out <폴더 이름>` 은 `mini_project/` 아래에 만듭니다(`index` 로 시작해야 gitignore 에 걸림).
+`--out <폴더 이름>` 은 저장소 맨 위에 만듭니다(`index` 로 시작해야 .gitignore 의 `/index*/` 에 걸림).
 
 ### 4-2. 구역 지도 (실측)
 
@@ -1028,10 +1038,10 @@ python evaluate.py answer --model gemma3:4b               # (선택) 수업 기�
 다음을 이 순서로, **복사해 붙이면 되는 명령**으로 씁니다. 쓰고 나서 새 터미널에서 처음부터 따라 해 확인합니다.
 
 1. 확인된 환경 (2-1절 표에서 OS · GPU · 파이썬 · Ollama · 주요 패키지 버전)
-2. 저장소 받기 → 가상환경 → `pip install -r mini_project/requirements.txt`
+2. 저장소 받기 → 가상환경 → `pip install -r requirements.txt`
 3. 모델 받기 (`ollama pull` 2줄) + `ollama list` 로 확인
 4. 문서 받기 — 가이드라인은 저장소에 있음, 사례집(68MB)은 CLAUDE.md «문서 받기» 의 `Invoke-WebRequest` 명령
-5. 루트 `.env` — `mini_project/.env.example` 을 가리키고 필요한 키 **이름만** (값 예시는 `xoxb-…`) · `LANGSMITH_TRACING=true`
+5. 루트 `.env` — `.env.example` 을 가리키고 필요한 키 **이름만** (값 예시는 `xoxb-…`) · `LANGSMITH_TRACING=true`
 6. 슬랙 앱 준비 — Socket Mode · 이벤트 2개 · 권한 3개 (2-2절 5번)
 7. `python build_index.py --show` → `python build_index.py` (기대 출력 몇 줄)
 8. `python rag_backend.py "아이스팩 어떻게 버리지"` (터미널 확인)

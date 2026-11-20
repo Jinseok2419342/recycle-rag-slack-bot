@@ -5,6 +5,10 @@
 >
 > 1~4번은 10주차 명세, 5 · 6번과 실측 숫자는 **2026-11-17 실제 실행 결과**입니다.
 > 요구사항 명세 · 실측 기록 → [CONTEXT.md](CONTEXT.md) · 평가 원본 → [eval_results/](eval_results/)
+>
+> «최신인공지능»(2026) 수업의 미니 프로젝트입니다. 본문의 «N주차 · N교시» 는 그 수업의 차시이고,
+> 수업 실습 코드 · 강의 자료는 수업 저장소 [langchain-2026-20241499](https://github.com/Jinseok2419342/langchain-2026-20241499) 에 있습니다.
+> 이 저장소는 그 저장소의 [`mini_project/`](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/mini_project) 를 커밋 기록째 옮겨 온 것입니다(2026-11-20).
 
 ```
    슬랙  @버릴지도 아이스팩 어떻게 버려?
@@ -143,7 +147,7 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0              # 0.6 GB
 
 ## 4. 사용 스택
 
-- **슬랙 봇** (입구 · 출구): `slack_bolt` Socket Mode — 10주차 [`slack_bot_mode/`](../11-06/slack_bot_mode/) 에서 출발.
+- **슬랙 봇** (입구 · 출구): `slack_bolt` Socket Mode — 10주차 [`slack_bot_mode/`](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/slack_bot_mode) (수업 저장소) 에서 출발.
   봇(입구 · 출구)은 그대로 두고 **두뇌(`rag_backend.py` 의 문서 · 분할 · 모델)만 갈아 끼웁니다.** ★ 필수 요건
 - **처리 방식: RAG** ★ 필수 → 고른 이유:
   - 답이 **고정된 공식 문서**에 있고, 분리배출은 틀리면 재활용이 안 되므로 **출처가 핵심**입니다(1교시 «출처 추적이 결정적인 이유»).
@@ -156,7 +160,7 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0              # 0.6 GB
   | ① Load | `PyPDFLoader` (PDF 2건 · 88쪽) |
   | ② Split | 정규식 **구조 분할**(Q&A 1건 · FAQ 1문항 · 품목 1줄) → 긴 본문만 `RecursiveCharacterTextSplitter(400, 40, 한국어 구분자)` |
   | ③ Embed | `OllamaEmbeddings(model="hf.co/mykor/KURE-v1-gguf:Q8_0")` |
-  | ④ Store | `FAISS.from_documents` (★ `from_texts` 가 아님 — 메타데이터 보존) + 10주차 `faiss_io` (한글 경로 대비) |
+  | ④ Store | `FAISS.from_documents` (★ `from_texts` 가 아님 — 메타데이터 보존) + 10주차 [`faiss_io`](https://github.com/Jinseok2419342/langchain-2026-20241499/blob/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/faiss_io.py) (한글 경로 대비 · 수업 제공 파일 그대로) |
   | ⑤ Retrieve | `RecycleRetriever`(`BaseRetriever` 상속) — 후보 10개 → `year >= 2020` 이면 거리 − 0.09 → 상위 3개. MultiQuery 는 비교 후 미채택(6번) |
   | ⑥ Generate | `ChatPromptTemplate`(`<근거>` 구분자) `\|` `ChatOllama` `\|` `StrOutputParser` — **LCEL** |
 
@@ -192,6 +196,7 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0              # 0.6 GB
 ## 5. 실행 방법
 
 아래 순서는 **2026-11-17 에 모델 · 가상환경 · 인덱스 · `.env` 가 하나도 없던 PC 에서 처음부터 해 본 것**입니다(`git clone` 만 이미 돼 있었음).
+그때는 수업 저장소의 `mini_project/` 폴더에서 했고, 이 저장소로 옮기며(2026-11-20) **경로만** 이 저장소 기준으로 바꿨습니다 — 명령 · 순서는 그대로입니다.
 
 ### 5-1. 확인된 환경
 
@@ -205,23 +210,23 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0              # 0.6 GB
 ### 5-2. 설치 (처음 한 번)
 
 ```powershell
-# ① 저장소 · 가상환경 · 패키지  (저장소 맨 위에서)
-git clone https://github.com/Jinseok2419342/langchain-2026-20241499.git
-cd langchain-2026-20241499
+# ① 저장소 · 가상환경 · 패키지  — ★ 영문 경로에 받으면 한글 경로 문제(5-6)가 생기지 않음
+git clone https://github.com/Jinseok2419342/recycle-rag-slack-bot.git C:\dev\recycle-rag-slack-bot
+cd C:\dev\recycle-rag-slack-bot
 python -m venv venv
-.\venv\Scripts\python.exe -m pip install -r mini_project\requirements.txt
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
 
 # ② 모델 2개 (약 5GB)
 ollama pull hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M     # 생성 4.4 GB
 ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0              # 임베딩 0.6 GB
 ollama list                                            # 위 두 줄이 보이면 OK
 
-# ③ 문서 — 가이드라인은 저장소에 있음. 사례집(68MB)은 용량 때문에 커밋하지 않아 따로 받음
-cd mini_project
+# ③ 문서 — 가이드라인은 저장소에 있음. 사례집(68MB)은 용량 때문에 커밋하지 않아 따로 받음 (받아 둔 파일이 있으면 data\ 에 복사)
 Invoke-WebRequest "https://www.kwaste.or.kr/lib/fileDownload.php?save_file=attachment_202605081124500.29008db5d7c61e61718f7a154de14539.pdf&file_name=QA100.pdf" -OutFile "data\분리배출_QA사례100_2026.pdf"
 ```
 
-④ **루트 `.env`** (저장소 맨 위 · 커밋 안 됨) — [`.env.example`](.env.example) 을 복사해 값을 채웁니다.
+④ **루트 `.env`** (저장소 맨 위 · 커밋 안 됨) — [`.env.example`](.env.example) 을 `.env` 로 복사해 값을 채웁니다.
+수업 저장소에서 쓰던 루트 `.env` 를 그대로 복사해 와도 됩니다(이 프로젝트가 읽지 않는 키는 무시됨).
 
 | 키 | 값 |
 |---|---|
@@ -243,26 +248,26 @@ LangSmith 프로젝트 이름(`recycle-bot-20241499`)은 `config.py` 가 정하�
 
 ### 5-3. 인덱스 만들기 → 터미널에서 확인 → 봇 실행
 
-모든 명령은 `mini_project/` 에서 합니다.
+모든 명령은 저장소 맨 위에서 합니다.
 
 ```powershell
 $env:PYTHONUTF8=1
 [Console]::OutputEncoding=[Text.Encoding]::UTF8        # 한글 출력이 깨지면
 
-..\venv\Scripts\python.exe build_index.py --check      # 임베딩 없이 분할 검사 → «✅ 모두 통과» (15항목 · 456청크)
-..\venv\Scripts\python.exe build_index.py              # 임베딩 + 저장 → index_recycle/  (약 7초)
+.\venv\Scripts\python.exe build_index.py --check       # 임베딩 없이 분할 검사 → «✅ 모두 통과» (15항목 · 456청크)
+.\venv\Scripts\python.exe build_index.py               # 임베딩 + 저장 → index_recycle/  (약 7초)
 ```
 
 ```
-✅ 저장 : …\mini_project\index_recycle  (방식: save_local · 6.6초)
+✅ 저장 : …\index_recycle  (방식: save_local · 6.6초)
    되읽기 확인: 안경·선글라스 p.31 | 품목: 안경·선글라스 Q. 사용하지 않는 안경이나 선글라스는 …
 ```
 
 ```powershell
-..\venv\Scripts\python.exe rag_backend.py "아이스팩 어떻게 버리지"                 # 검색 3개 + 답 + 근거
-..\venv\Scripts\python.exe rag_backend.py 검색 "선글라스"                          # 검색만
-..\venv\Scripts\python.exe rag_backend.py 비교 "마트 영수증은 종이로 버려도 돼?"   # RAG 없이 vs RAG 로
-..\venv\Scripts\python.exe slack_rag_bot.py                                        # 봇 실행 (Ctrl+C 로 끝)
+.\venv\Scripts\python.exe rag_backend.py "아이스팩 어떻게 버리지"                  # 검색 3개 + 답 + 근거
+.\venv\Scripts\python.exe rag_backend.py 검색 "선글라스"                           # 검색만
+.\venv\Scripts\python.exe rag_backend.py 비교 "마트 영수증은 종이로 버려도 돼?"    # RAG 없이 vs RAG 로
+.\venv\Scripts\python.exe slack_rag_bot.py                                         # 봇 실행 (Ctrl+C 로 끝)
 ```
 
 ```
@@ -286,9 +291,9 @@ Bolt app is running!
 ### 5-5. 평가 다시 돌리기 (선택)
 
 ```powershell
-..\venv\Scripts\python.exe evaluate.py answer --ids scratch     # 10주차 6문항
-..\venv\Scripts\python.exe evaluate.py retrieval                # 검색 — 전략 × year_bonus
-..\venv\Scripts\python.exe evaluate.py answer                   # 생성 30문항
+.\venv\Scripts\python.exe evaluate.py answer --ids scratch      # 10주차 6문항
+.\venv\Scripts\python.exe evaluate.py retrieval                 # 검색 — 전략 × year_bonus
+.\venv\Scripts\python.exe evaluate.py answer                    # 생성 30문항
 ```
 
 결과는 `eval_results/날짜-시각-*.md` 로 저장됩니다(이번 결과는 커밋돼 있음 · CONTEXT 부록 D · E).
@@ -298,14 +303,14 @@ Bolt app is running!
 | 증상 | 원인 · 해결 |
 |---|---|
 | `인덱스가 없습니다` | `python build_index.py` 를 먼저 |
-| `임베딩 모델이 인덱스와 다릅니다` | `RECYCLE_EMBED_MODEL` 을 바꿨거나 다른 모델로 만든 인덱스 → `build_index.py` 다시. `tests/offline_check.py` 를 돌린 뒤에도 그렇습니다(가짜 임베딩 인덱스로 덮어씀) |
+| `임베딩 모델이 인덱스와 다릅니다` | `RECYCLE_EMBED_MODEL` 을 바꿨거나 다른 모델로 만든 인덱스 → `build_index.py` 다시 (`tests/offline_check.py` 는 임시 폴더에만 인덱스를 만들어 `index_recycle/` 을 건드리지 않습니다) |
 | 임베딩 중 `…/tokenize: connection refused` | Ollama 가 큰 요청에서 죽는 문제 — 지금 코드는 64개씩 보내므로 다시 실행 |
-| 한글 경로에서 `index.bytes` 로 저장됨 | 정상 — FAISS 가 한글 경로를 못 열어 바이트로 저장 (10주차 `faiss_io`) |
+| 한글 경로에서 `index.bytes` 로 저장됨 | 정상 — FAISS 가 한글 경로를 못 열어 바이트로 저장 (10주차 `faiss_io`). 영문 경로에 클론하면 생기지 않음 |
 | 첫 답이 20~30초 | 모델 로딩. 봇은 시작할 때 워밍업하고 30분간 올려 둠 (`keep_alive`) |
 | GPU 가 8GB 에 가까움 | 다른 모델이 남아 있음 → `ollama ps` → `ollama stop <모델>` |
 | DM 에 답이 없음 | `im:history` 권한 · `message.im` 이벤트 · 앱 재설치 (5-2 ⑤) |
 | `검색` · `비교` 가 안 먹음 | 멘션을 두 번 씀 (`@봇 @다른이름 검색 …`) — 멘션 한 번 뒤 바로 `검색` |
-| 답이 둘로 갈리거나 안 옴 | 같은 `SLACK_APP_TOKEN` 으로 다른 봇(10주차 봇 등)이 켜져 있음 → 하나만 |
+| 답이 둘로 갈리거나 안 옴 | 같은 `SLACK_APP_TOKEN` 으로 다른 봇(10주차 봇 · 수업 저장소 `mini_project/` 의 같은 봇 등)이 켜져 있음 → 하나만 |
 
 ## 6. 한계와 개선 방향
 
@@ -322,12 +327,14 @@ Bolt app is running!
 | 품목사전 2단 배치 | 이웃 항목이 섞인 **4건**을 인덱스에서 뺐고(`ITEM_DROP`), 배출방법이 아이콘으로만 있는 **7묶음**(국자 · 그릇 · 도마 · 쓰레받기 · 재떨이 · 컵 등)은 읽지 못함 | 좌표 기반 추출(`pdfplumber`)로 단을 나눠 읽기 |
 | 추출 글의 낱말 중간 공백 | «되나 요?», «에어 캡» 처럼 PDF 추출에서 생긴 공백이 청크에 남음 | 띄어쓰기 교정 · BM25 병행 |
 | 평가가 작고 키워드로만 채점 | 30문항 · 답에 정답 낱말이 있는지만 봄 — «근거에 충실한가» 는 재지 못함. 1~2문항 차이는 «같은 수준» 으로 봄 | 문항 확대 · 근거성 평가 (LLM 채점) |
-| 대화 기억 없음 | 질문 1건 = 답 1건. «그건 왜?» 처럼 앞 질문에 기대면 모름 | 후속 질문 다시 쓰기 (11주차 `citation.py --followup`) |
+| 대화 기억 없음 | 질문 1건 = 답 1건. «그건 왜?» 처럼 앞 질문에 기대면 모름 | 후속 질문 다시 쓰기 (11주차 [`citation.py --followup`](https://github.com/Jinseok2419342/langchain-2026-20241499/blob/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-13/citation.py)) |
 | 봇을 켤 때마다 모델 로딩 | 첫 호출 27.9초(측정) — 봇은 시작 시 워밍업으로 가려 첫 슬랙 답 1.3초 | Ollama 상시 실행 · 서비스 등록 |
 
 ---
 
 ## 필수 요건 대조 (2교시 §4-2 · §4-3)
+
+기준: 수업 자료 [«2교시 분할 · 메타데이터와 프로젝트 착수»](https://github.com/Jinseok2419342/langchain-2026-20241499/blob/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/2%EA%B5%90%EC%8B%9C_%EB%B6%84%ED%95%A0_%EB%A9%94%ED%83%80%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%99%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%B0%A9%EC%88%98.pdf) §4 (23 ~ 29쪽 · 수업 저장소)
 
 | 요건 | 이 프로젝트 | 어디에 |
 |---|---|---|

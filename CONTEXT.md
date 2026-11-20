@@ -1,6 +1,6 @@
 # 요구사항 명세 — 버릴지도 (분리배출 안내 RAG 슬랙 봇)
 
-> 10주차 3교시 실습(`11-06/`)을 마친 뒤 작성했습니다.
+> 10주차 3교시 실습([`11-06/`](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06) · 수업 저장소)을 마친 뒤 작성했습니다.
 > 이 문서의 숫자는 **추정이 아니라 직접 잰 값**입니다 — 설계 때(2026-11-06) 잰 것은 부록 A ~ C,
 > 구현을 마치고 실제 모델 · 실제 슬랙으로 다시 잰 것(2026-11-17)은 부록 D ~ F 에 있습니다.
 
@@ -135,7 +135,7 @@
     KURE-v1 + 구조 분할만으로 생활용어 8문항이 이미 모두 풀려 있었고 MultiQuery 는 오히려 낮았습니다(Top-3 23 → 20~21) → **채택하지 않음**.
   - `year >= 2020` 청크의 거리에서 0.09 를 빼 **2026 사례를 앞세웁니다**(필터가 아닌 재정렬 — 2018 에만 있는 품목을 잃지 않게).
 - **분기 · 순환**: 필요 없음 → **LCEL** (`retriever | prompt | llm | parser`). LangGraph 는 쓰지 않습니다.
-- **봇 골격**: 10주차 `slack_bot_mode/` 를 그대로 출발점으로 — `rag_backend.ask()` 의 **두뇌(문서·분할·모델)만** 바꿉니다.
+- **봇 골격**: 10주차 [`slack_bot_mode/`](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/slack_bot_mode) 를 그대로 출발점으로 — `rag_backend.ask()` 의 **두뇌(문서·분할·모델)만** 바꿉니다.
   `검색` · `비교` 모드도 그대로 살립니다(«RAG 없이 vs RAG 로» 를 슬랙에서 바로 보여 줌).
 
 ### 보안 — 9주차 «간접 주입» 대비
@@ -153,7 +153,7 @@
   3. ★ **전처리도 추적** — PDF 정리(`clean`)·구조 분할(`split_units`)에 `@traceable` 을 붙여 인덱스 만들 때 **몇 청크가 어떤 모양으로 나왔는지** 남김
      (1교시 2-3 «전처리 함수를 추적에 올리지 않으면 "모델이 이상하다" 고 몇 시간을 본다»)
 - **태그 / 메타데이터**: `rag` · `no-rag`(비교 모드) · `model` · `embed_model` · `slack_user`
-- **프로젝트 이름**(`LANGSMITH_PROJECT`): `recycle-bot-20241499` — `config.py` 가 지정합니다(루트 `.env` 에 넣으면 다른 주차 실습의 trace 까지 섞이므로).
+- **프로젝트 이름**(`LANGSMITH_PROJECT`): `recycle-bot-20241499` — `config.py` 가 지정합니다(수업 저장소에서는 루트 `.env` 를 다른 주차 실습과 같이 써서, 거기에 넣으면 다른 실습의 trace 까지 섞였기 때문).
   루트 `.env` 에는 `LANGSMITH_TRACING=true` 와 API 키만 둡니다.
 - ✅ 2026-11-17 확인 — `recycle-rag` · `recycle-plain` · `recycle-search` · `build-chunks` trace 와 태그 · `slack_user` metadata 가 실제로 남음
 - ✅ 캡처 (2026-11-19 · 11-17 trace) — `recycle-rag` 트리 · `RecycleRetriever` 의 근거와 metadata · `build-chunks`(정리 `clean-pages` → 구역별 `split-*` → 456청크) 3장을 README 4번에 넣음.
