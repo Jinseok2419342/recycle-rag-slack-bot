@@ -42,8 +42,8 @@
 - **2026-11-20 에 한 일 — 독립 저장소로 옮김** (수업 저장소는 건드리지 않음)
   - `git subtree split --prefix=mini_project` 로 커밋 13개를 날짜 · 메시지 그대로 가져옴 → 태그 `imported-from-class-repo`.
     옛 커밋 2개(11-06 · 11-13)의 깨진 작성자 이름(터미널 화살표 키 입력이 섞임)만 `Jinseok2419342` 로 고침
-  - 그 위에 커밋 4개: `.gitignore` 새로 · 코드 속 경로 안내 문구(**로직 0줄** — 문자열만 뺀 AST 비교로 확인) ·
-    문서 경로와 수업 저장소 고정 링크(`59cd1d3`) · 이 파일
+  - 그 위에 커밋 5개: `.gitignore` 새로 · 코드 속 경로 안내 문구(**로직 0줄** — 문자열만 뺀 AST 비교로 확인) ·
+    문서 경로와 수업 저장소 고정 링크(`59cd1d3`) · 이 파일 · `pypdf==6.21.4` 고정(7.x 에서 `--check` 실패 — 함정 22)
   - 옮기며 바로잡은 것: `offline_check.py` 가 `index_recycle/` 을 덮어쓴다는 안내(틀렸음 — 아래 진행 기록) · architecture.md 줄 수 표
   - ⏳ **사용자 PC 에서 새 클론으로 확인 대기** — `build_index.py --check` · `tests/offline_check.py` · `build_index.py` ·
     `rag_backend.py 검색 "선글라스"`. 결과가 오면 README 5번 머리에 «옮긴 뒤 다시 확인함» 한 줄을 채울 것
@@ -286,6 +286,9 @@ $env:PYTHONUTF8=1
 20. PowerShell 에서 한글이 깨지면 `[Console]::OutputEncoding=[Text.Encoding]::UTF8` (`PYTHONUTF8` 만으로는 파이프 출력이 깨짐)
 21. **이 저장소를 수업 저장소 폴더 안에 클론하지 말 것** — `.env` 가 없으면 `load_dotenv()` 가 위 폴더로 올라가며 찾아
     수업 저장소의 루트 `.env` 를 읽어 버림(헷갈림). 따로 영문 경로에 두고 `.env` 는 이 저장소 맨 위에 복사
+22. **pypdf 7.x 금지 — `requirements.txt` 가 `pypdf==6.21.4` 로 고정** (2026-11-20 실측). 7.x 는 «배출(전기이불담요 포함)» 을
+    «배출 (…» 처럼 공백을 넣어 뽑아 `ITEM_DROP` 1건이 안 걸림 → 품목사전 283건 · `--check` 실패 · 뜻이 틀어진 청크가 인덱스에 들어감.
+    가이드라인 3구역(본문 38 · FAQ 36 · 품목 282)은 6.21.4 에서 기록과 같음을 클라우드에서 확인. 사례집 구역은 PDF 가 없어 못 봄
 
 ## 사용자 확인이 필요한 미결 사항 (SPEC 13장)
 

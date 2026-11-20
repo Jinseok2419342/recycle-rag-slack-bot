@@ -1197,6 +1197,7 @@ CONTEXT «범위 밖» 9항목은 그대로 유효합니다. 구현 중 유혹�
 | j | 6-1절 검색 모드 | trace 이름 `recycle-search` · 태그 `search` 로 추적에 남김 | 검색 모드도 슬랙 입력이라 |
 | k | 4장 저장 `FAISS.from_documents(chunks, …)` 한 번 | `EMBED_BATCH = 64` 개씩 — 첫 묶음 `from_documents` 뒤 `add_documents` (2026-11-17) | 456청크를 한 요청에 보내면 Ollama 0.32.14 러너가 간헐적으로 죽음(`…/tokenize: connection refused` · 3회 중 2회). 64개씩은 3회 모두 성공 · 결과 벡터 동일 |
 | l | 8-2절 캡처 7장 PNG · 제출 직전에 새 trace 로 | **5장 PNG 원본** (2026-11-19 · 11-17 trace 와 슬랙 화면): `trace-rag` · `trace-retriever` · `trace-build` · `slack-thread` · `slack-compare`. MultiQuery(미채택) · metadata 탭(슬랙 ID 노출) 캡처는 뺌, 비교는 LangSmith 목록 대신 슬랙 `비교` 스레드로 | 이미지는 보존 기간과 상관없어 지금 찍어도 됨 · 사용자 결정. README 2번(슬랙) · 4번(LangSmith) 에 넣음 |
+| m | 3-3절 버전 고정 없음 | `pypdf==6.21.4` 만 고정 (2026-11-20 · 독립 저장소로 옮기며 새 가상환경으로 확인하다 발견) | pypdf 7.x(2026-11 최신)는 품목사전 글자 사이 공백을 다르게 뽑아 `ITEM_DROP` «전기장판 … 전기밥솥» 이 안 걸림 → 283건 · `--check` 실패. 6.21.4 는 README 5-1 의 확인 버전이고 6.x 의 마지막 판 · 가이드라인 3구역이 기록(38 · 36 · 282)과 같음 |
 
 **검증한 것 / 못 한 것**
 

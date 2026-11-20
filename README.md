@@ -304,6 +304,7 @@ Bolt app is running!
 |---|---|
 | `인덱스가 없습니다` | `python build_index.py` 를 먼저 |
 | `임베딩 모델이 인덱스와 다릅니다` | `RECYCLE_EMBED_MODEL` 을 바꿨거나 다른 모델로 만든 인덱스 → `build_index.py` 다시 (`tests/offline_check.py` 는 임시 폴더에만 인덱스를 만들어 `index_recycle/` 을 건드리지 않습니다) |
+| `--check` 에서 «ITEM_DROP 4건이 모두 걸림» ❌ · 품목사전 283건 | pypdf 7.x 가 깔려 있음 — 7.x 는 PDF 글자 사이 공백을 다르게 뽑아 뜻이 틀어진 품목 1건(전기장판 · 전기밥솥)을 못 거름 → `pip install -r requirements.txt` 로 고정 버전(6.21.4) 설치 |
 | 임베딩 중 `…/tokenize: connection refused` | Ollama 가 큰 요청에서 죽는 문제 — 지금 코드는 64개씩 보내므로 다시 실행 |
 | 한글 경로에서 `index.bytes` 로 저장됨 | 정상 — FAISS 가 한글 경로를 못 열어 바이트로 저장 (10주차 `faiss_io`). 영문 경로에 클론하면 생기지 않음 |
 | 첫 답이 20~30초 | 모델 로딩. 봇은 시작할 때 워밍업하고 30분간 올려 둠 (`keep_alive`) |

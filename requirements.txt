@@ -1,5 +1,5 @@
 # 버릴지도 — 분리배출 안내 RAG 슬랙 봇
-# 버전은 고정하지 않는다 (수업 저장소 관례). 확인된 버전은 README 5번 «확인된 환경».
+# 버전은 고정하지 않는다 (수업 저장소 관례 · pypdf 만 예외 — 아래). 확인된 버전은 README 5번 «확인된 환경».
 
 langchain
 langchain-core
@@ -9,7 +9,8 @@ langchain-text-splitters
 langsmith
 python-dotenv
 
-pypdf                 # PDF Loader
+pypdf==6.21.4         # PDF Loader — ★ 이것만 고정: 7.x 는 글자 사이 공백을 다르게 뽑아(«배출(…» → «배출 (…»)
+                      #   품목사전 ITEM_DROP 1건이 안 걸림 → 283건 · --check 실패 (2026-11-20 실측 · 6.21.4 는 기록대로 282건)
 faiss-cpu             # 벡터 인덱스
 numpy
 
