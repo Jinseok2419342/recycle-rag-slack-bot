@@ -1,0 +1,18 @@
+# 가상환경
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# 환경변수 — 절대 커밋 금지 ★
+.env
+
+# 에디터
+.vscode/
+.idea/
+
+# 대용량 원본 PDF — 사례집 (68MB · 받는 법은 README 5-2 ③)
+data/분리배출_QA사례100_2026.pdf
+
+# build_index.py 가 만드는 인덱스 (index_recycle/ · index_recursive/ …) — PC 마다 다시 만듦
+/index*/
