@@ -1,6 +1,6 @@
 """오프라인 검증 — Ollama · 슬랙 없이 가짜 임베딩 · 가짜 LLM · 가짜 슬랙 클라이언트로 코드 경로를 돌린다.
 
-    python tests/offline_check.py        (mini_project 에서 · 두 PDF 가 data/ 에 있어야 한다)
+    python tests/offline_check.py        (저장소 맨 위에서 · 두 PDF 가 data/ 에 있어야 한다)
 
   확인하는 것: 인덱스 저장과 manifest · 검색기(융합 · year 보정 · via) · trace 모양(이름 · 부모 자식 · 태그) ·
               슬랙 갈래 전부(스레드 · 자리잡기 → 고침 · 검색 · 비교 · 빈 멘션 · 300자 · 이스케이프 · 오류 문구) · 평가 스크립트

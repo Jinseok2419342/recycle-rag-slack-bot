@@ -3,7 +3,7 @@
   ★ 이유: LangSmith 는 환경 변수를 처음 읽을 때 기억해 둔다.
      여기서 프로젝트 이름을 정한 뒤에 라이브러리가 올라와야 trace 가 «recycle-bot-20241499» 로 간다.
 
-  모델 · 전략은 전용 키 RECYCLE_* 로만 바꾼다 (루트 .env 의 MODEL · EMBED_MODEL 은 다른 주차 실습용이라 읽지 않는다).
+  모델 · 전략은 전용 키 RECYCLE_* 로만 바꾼다 (.env 의 MODEL · EMBED_MODEL 은 읽지 않는다 — 수업 저장소에서 다른 주차 실습과 .env 를 같이 쓸 때 정한 규칙).
   RECYCLE_* 는 «실행 한 번 = 설정 하나» — 인덱스와 모델을 한 번만 읽어 계속 쓰기 때문에 실행 중에는 바뀌지 않는다.
 """
 
@@ -12,8 +12,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()                                   # 루트 .env (위쪽 폴더로 올라가며 찾음)
-# ★ LangSmith 프로젝트는 여기서 정한다 — 루트 .env 를 건드리지 않아 다른 주차 trace 와 안 섞임
+load_dotenv()                                   # 저장소 맨 위의 .env (이 파일의 폴더부터 위로 올라가며 찾음)
+# ★ LangSmith 프로젝트는 여기서 정한다 — .env 에 넣지 않아도 되고, .env 를 다른 실습과 같이 써도 trace 가 안 섞임
 os.environ["LANGSMITH_PROJECT"] = os.getenv("RECYCLE_LANGSMITH_PROJECT", "recycle-bot-20241499")
 
 HERE = Path(__file__).resolve().parent

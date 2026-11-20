@@ -237,7 +237,7 @@ def main() -> None:
     try:
         SocketModeHandler(app, app_token).start()
     except SlackApiError as e:
-        raise SystemExit(f"앱 토큰으로 연결하지 못했습니다: {e.response['error']}  → 10-30/socket_hello.py 로 슬랙 쪽부터 확인")
+        raise SystemExit(f"앱 토큰으로 연결하지 못했습니다: {e.response['error']}  → .env 의 SLACK_APP_TOKEN · 슬랙 앱 Socket Mode 설정부터 확인 (README 5-2 ⑤)")
 
 
 if __name__ == "__main__":

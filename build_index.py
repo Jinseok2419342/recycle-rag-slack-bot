@@ -105,7 +105,7 @@ def load_pdf(name: str) -> list[Document]:
     if not path.exists():
         raise SystemExit(
             f"PDF 가 없습니다: {path}\n"
-            "  → 받는 법은 CLAUDE.md «문서 받기» (사례집은 68MB 라 저장소에 없습니다)"
+            "  → 받는 법은 README 5-2 ③ (사례집은 68MB 라 저장소에 없습니다)"
         )
     return PyPDFLoader(str(path)).load()
 
@@ -586,7 +586,7 @@ def main() -> None:
     ap.add_argument("--show", nargs="?", const="", choices=("", *DOC_TYPES), help="임베딩 없이 청크를 본다")
     ap.add_argument("--check", action="store_true", help="수용 기준을 검사한다 (임베딩 없음)")
     ap.add_argument("--mode", choices=("structure", "recursive"), default="structure")
-    ap.add_argument("--out", default=None, help="저장할 폴더 이름 (mini_project/ 아래 · index 로 시작)")
+    ap.add_argument("--out", default=None, help="저장할 폴더 이름 (저장소 맨 위에 만듦 · index 로 시작)")
     args = ap.parse_args()
     dry_run = args.show is not None or args.check
 
@@ -610,7 +610,7 @@ def main() -> None:
 
     out_name = args.out or (config.INDEX_DIR.name if args.mode == "structure" else "index_recursive")
     if not out_name.startswith("index"):
-        raise SystemExit("--out 은 index 로 시작해야 합니다 (.gitignore 의 mini_project/index*/ 에 걸리게).")
+        raise SystemExit("--out 은 index 로 시작해야 합니다 (.gitignore 의 /index*/ 에 걸리게).")
     save(chunks, HERE / out_name, args.mode)
 
 
