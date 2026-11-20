@@ -19,7 +19,7 @@
 - **저장소 두 곳** (2026-11-20)
   - **이 저장소 `recycle-rag-slack-bot` 이 원본** — 앞으로의 수정은 여기에만
   - 수업 저장소 [`langchain-2026-20241499`](https://github.com/Jinseok2419342/langchain-2026-20241499) 의 `mini_project/` 는 2026-11-19 상태(커밋 `944b556`)로 **동결 · 수정하지 않음**.
-    이 저장소의 태그 `imported-from-class-repo` 가 그 상태와 바이트 단위로 같은 커밋
+    이 저장소의 커밋 `7431143` 이 그 상태와 바이트 단위로 같음 (원본 히스토리 13개의 끝)
   - 강의 PDF · 수업 실습 코드(`11-06/` · `11-13/` · `10-30/` …)는 **수업 저장소에만** 있음 — 이 문서 · SPEC 의 `11-06/…` 표기는 그 저장소 경로.
     문서의 링크는 수업 저장소 커밋 `59cd1d3` 에 고정. 클라우드 세션에서 읽어야 하면 `add_repo` 로 수업 저장소(public)를 붙임
 - **판단 기준 (사용자가 정함)** — «수업 자료의 형식 · 요건을 충족하는가» 가 전부입니다.
@@ -35,18 +35,25 @@
   - 커밋 메시지는 한국어 · **접두어 없이** (수업 저장소 시절 커밋은 `mini_project: …`)
 - **클라우드 세션(claude.ai/code)에서 열었을 때** — GPU · Ollama · 루트 `.env` · 68MB 사례집 PDF · 파이썬 패키지가 **없습니다**.
   모델 · 슬랙 · LangSmith 실행은 못 하고 문서 · 코드 읽기와 수정만 됩니다. 실행이 필요하면 사용자가 보조 PC 에서 돌리고 결과(캡처 · 출력)를 줌.
-  `kwaste.or.kr`(사례집 PDF 받는 곳)은 클라우드 네트워크에서 막혀 있음. 세션이 끝날 때 «커밋 안 된 변경» 훅이 돌면 작업 브랜치까지만 푸시하고 `main` 은 확인 뒤에 반영
+  `kwaste.or.kr`(사례집 PDF 받는 곳)은 기본(Default) 클라우드 환경에서 막혀 있음 → 아래 «클라우드 환경». 세션이 끝날 때 «커밋 안 된 변경» 훅이 돌면 작업 브랜치까지만 푸시하고 `main` 은 확인 뒤에 반영
+- **클라우드 환경 «버릴지도 (분리배출 RAG 봇)»** (2026-11-20 사용자 승인 · 개인 환경) — `www.kwaste.or.kr` 허용 +
+  설치 스크립트(맨 위에 `venv` 만들고 `requirements.txt` 설치). 이 환경으로 시작한 세션에서는 사례집을 받아
+  `./venv/bin/python build_index.py --check` · `tests/offline_check.py` · `questions.py` 까지 돌릴 수 있음 (모델 · 슬랙은 여전히 안 됨).
+  설치 스크립트는 같은 명령을 손으로 돌려 확인했지만, 새 세션에서 자동으로 도는 것은 아직 못 봄
 - **이미지를 받을 때** — 채팅에 붙인 이미지는 폭 2000px JPG 로 줄어듦 → 문서에 넣을 원본은 **ZIP 으로** 받기 (scratchpad 의 새 폴더에 풀고 `__MACOSX` 는 버림)
 - **2026-11-19 에 한 일** — CLAUDE.md 깨진 곳 복구 · 미결 2 · 3 · 8 반영 · LangSmith 3장 + 슬랙 2장 캡처(`docs/*.png` · README 2 · 4번) ·
   `not_done_plan.md` 삭제 · 옛 문장 정리 · 이 절 추가. 모두 사용자 계정으로 `main` 에 반영
 - **2026-11-20 에 한 일 — 독립 저장소로 옮김** (수업 저장소는 건드리지 않음)
-  - `git subtree split --prefix=mini_project` 로 커밋 13개를 날짜 · 메시지 그대로 가져옴 → 태그 `imported-from-class-repo`.
+  - `git subtree split --prefix=mini_project` 로 커밋 13개를 날짜 · 메시지 그대로 가져옴 (끝 = `7431143`).
+    태그 `imported-from-class-repo` 는 만들었지만 클라우드 세션의 프록시가 태그 push 를 막아(403) 원격에는 없음 — 원하면 사용자가 붙임
     옛 커밋 2개(11-06 · 11-13)의 깨진 작성자 이름(터미널 화살표 키 입력이 섞임)만 `Jinseok2419342` 로 고침
   - 그 위에 커밋 5개: `.gitignore` 새로 · 코드 속 경로 안내 문구(**로직 0줄** — 문자열만 뺀 AST 비교로 확인) ·
     문서 경로와 수업 저장소 고정 링크(`59cd1d3`) · 이 파일 · `pypdf==6.21.4` 고정(7.x 에서 `--check` 실패 — 함정 22)
   - 옮기며 바로잡은 것: `offline_check.py` 가 `index_recycle/` 을 덮어쓴다는 안내(틀렸음 — 아래 진행 기록) · architecture.md 줄 수 표
-  - ⏳ **사용자 PC 에서 새 클론으로 확인 대기** — `build_index.py --check` · `tests/offline_check.py` · `build_index.py` ·
-    `rag_backend.py 검색 "선글라스"`. 결과가 오면 README 5번 머리에 «옮긴 뒤 다시 확인함» 한 줄을 채울 것
+  - ✅ **옮긴 뒤 확인** (클라우드 · 위 환경에서 사례집 68,862,868바이트를 받아 · 새로 만든 venv · pypdf 6.21.4) —
+    `build_index.py --check` 15항목 ✅ · 456청크 / `tests/offline_check.py` ALL OK (40항목) / `questions.py` ✅ → README 5번 머리에 기록.
+    pypdf 7.1.1 로는 `--check` 실패(457청크 · ITEM_DROP 3/4 · 종료 코드 1)도 재확인. 모델 단계(임베딩 · 답 · 슬랙)는 로직이 그대로라
+    다시 안 돌림 — 보조 PC 를 쓸 수 있을 때 원하면 `build_index.py` · `rag_backend.py 검색 "선글라스"` 로 확인
 
 ## 진행 기록 (2026-11-17 첫 실행 · 2026-11-19 마무리)
 
@@ -86,7 +93,8 @@
 - **`year_bonus` 0.09 채택**: SPEC 7-3 의 `year_bonus` 규칙(«Top-3 가 줄지 않고 c1 이 깨지지 않는 값 중 연도충돌 2026 이 가장 많은 값»)으로 채택. 생성 정답은 28 = 28 로 같음 — README 의 «최신 사례 우선» 을 실제로 보여 주려고 사용자가 승인. `tests/offline_check.py` 검사도 0.09 로 바꿈
 - ℹ️ `tests/offline_check.py` 는 인덱스 · 평가 결과를 **임시 폴더에만** 만들고 지움 — `index_recycle/` · `eval_results/` 를 건드리지 않음
   (`RECYCLE_INDEX` 를 임시 폴더의 절대 경로로 둠 · 첫 커밋 11-14 부터 그랬음). 예전 이 자리의 «덮어쓴다 → 다시 만들 것» 경고는
-  틀린 것이었음 (2026-11-20 코드로 확인 · README 5-6 도 고침). manifest 의 `embed_model` 이 다르면 봇이 시작을 거부하는 장치는 그대로
+  틀린 것이었음 (2026-11-20 코드로 확인 · README 5-6 도 고침). manifest 의 `embed_model` 이 다르면 봇이 시작을 거부하는 장치는 그대로.
+  검사 항목은 **40개** — 예전에 적은 «41항목» 은 출력의 ✅ 줄을 세다가 «✅ 저장 : …» 안내 줄까지 넣은 수 (2026-11-20 확인)
 
 **일정**: 13주차(11/27) 중간 점검 — 수업 시간의 진행 확인 · 상담(슬랙 왕복은 이미 됨) · **14주차(12/4) 최종 제출**.
 제출물 = 코드 + README + LangSmith 추적 캡처(필수) — 전부 저장소에 있음. 제출 방법 · 제출처는 수업 공지를 따름(사용자 확인).
@@ -95,7 +103,7 @@
 
 | ✅ 검증함 | ❌ 아직 못 함 |
 |---|---|
-| 모델 없이: `build_index.py --check` 15항목 · `questions.py` · `tests/offline_check.py` 41항목 (Python 3.11 · **3.13.3** 둘 다) | 한글 경로에서의 저장 (`index.bytes` 경로) — **하지 않기로 함** (2026-11-19 사용자 판단: 평가 항목 아님 · 같은 사양의 보조 PC 에서 처음부터 세팅해 통과 · `faiss_io` 는 수업 제공 파일 그대로) |
+| 모델 없이: `build_index.py --check` 15항목 · `questions.py` · `tests/offline_check.py` 40항목 (Python 3.11 · **3.13.3** 둘 다 · 2026-11-20 클라우드에서 다시) | 한글 경로에서의 저장 (`index.bytes` 경로) — **하지 않기로 함** (2026-11-19 사용자 판단: 평가 항목 아님 · 같은 사양의 보조 PC 에서 처음부터 세팅해 통과 · `faiss_io` 는 수업 제공 파일 그대로) |
 | 실제 모델 (2026-11-17): 임베딩 · 인덱스 · 검색 · 생성 · 평가 E1~E4 — 위 «첫 실행 결과» | 슬랙 화면의 사용법 안내(빈 멘션) 문구 — 콘솔로는 분기만 확인. ℹ️ 안내 줄은 캡처(`docs/slack-compare.png`)로 확인함 |
 | 실제 슬랙 왕복(멘션 · DM · 검색 · 비교 · 빈 멘션 · 범위 밖) · LangSmith trace · VRAM | Ollama 를 끈 상태의 오류 처리 (SPEC 6-5 자체 점검 · 수업 요건 아님 · 선택 — 가짜 모델로는 확인함). LangSmith · 슬랙 화면 캡처는 2026-11-19 완료 |
 | 범위 밖 «찾지 못했습니다» 4/4 · i2(요리사) 거절 | **i1(시스템 프롬프트 출력 요구)** — 누출은 없으나 엉뚱한 품목 답 (오답) |
@@ -139,7 +147,7 @@ recycle-rag-slack-bot/             ← git 저장소 맨 위 (github.com/Jinseok
 ├── questions.py                   ← 평가 문항 30개 (+ 자기 검사)
 ├── evaluate.py                    ← retrieval | answer 측정 → eval_results/
 ├── requirements.txt · .env.example
-├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (41항목)
+├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (40항목)
 ├── docs/architecture.md           ← 구성도 · 프로세스 · 흐름도 (Mermaid 8개)
 ├── docs/scenarios.md              ← 가상 시나리오 8개 (Mermaid 8개)
 ├── docs/*.png                     ← 캡처 5장 (trace-rag · trace-retriever · trace-build · slack-thread · slack-compare)
@@ -174,7 +182,7 @@ $env:PYTHONUTF8=1
 |---|---|---|---|
 | 0 | `ollama pull hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M` · `ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0` · 루트 `.env` 의 `LANGSMITH_TRACING=true` · `ollama ps` 로 GPU 비우기 · 10주차 봇 · 수업 저장소의 같은 봇 끄기 | `ollama list` 에 두 줄 | SPEC 2-2절 |
 | 1 | `python build_index.py --check` | 15항목 ✅ (임베딩 없음) | 사례집 PDF 가 없으면 위 «문서 받기» |
-| 2 | `python tests/offline_check.py` | `ALL OK` (41항목 · 모델 없음) | 패키지 버전 차이 — 메인 PC 는 Python 3.13 · 이 검사는 3.11 에서 돌렸음 |
+| 2 | `python tests/offline_check.py` | `ALL OK` (40항목 · 모델 없음) | 패키지 버전 차이 — 메인 PC 는 Python 3.13 · 이 검사는 3.11 에서 돌렸음 |
 | 3 | `python build_index.py` | `✅ 저장` + 되읽기 확인 줄에 «안경·선글라스 p.31» · `index_recycle/manifest.json` 생김 | 한글 경로면 `index.bytes` 로 저장되는 것이 정상 |
 | 4 | `python rag_backend.py "뽁뽁이는 어떻게 버려요?"` · `검색 "선글라스"` · `비교 "마트 영수증은 종이로 버려도 돼?"` | 검색 1~3위에 정답 품목 · 답 · 근거 줄 | 검색이 엉뚱하면 임베딩 모델 · manifest 부터 |
 | 5 | `python evaluate.py answer --ids scratch` | 10주차와 같은 6문항 — **6/6 이 나오는지** (CONTEXT 부록 C 와 비교) | 6/6 이 아니면 분할이 바뀐 영향 — 어느 문항인지 `eval_results/` 에서 확인 |

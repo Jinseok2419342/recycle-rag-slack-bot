@@ -1205,7 +1205,7 @@ CONTEXT «범위 밖» 9항목은 그대로 유효합니다. 구현 중 유혹�
 |---|---|
 | `build_index.py --check` 15항목 — 실제 PDF | 임베딩 · 인덱스 저장을 실제 KURE-v1 로 |
 | `questions.py` — `gold` 36개가 실제 청크에 있음 (구조 · 재귀 두 분할 모두) | 검색 Top-1 · Top-3 · 생성 정답 수 (전부 미측정) |
-| `tests/offline_check.py` 41항목 — 가짜 임베딩 · 가짜 LLM · 가짜 슬랙 클라이언트로 검색기 · trace 모양 · 슬랙 갈래 전부 · 평가 스크립트 | 실제 슬랙 왕복 · 실제 LangSmith 화면 · VRAM · 답 시간 |
+| `tests/offline_check.py` 40항목(처음엔 «✅ 저장» 안내 줄까지 세어 41로 적었음 · 2026-11-20 정정) — 가짜 임베딩 · 가짜 LLM · 가짜 슬랙 클라이언트로 검색기 · trace 모양 · 슬랙 갈래 전부 · 평가 스크립트 | 실제 슬랙 왕복 · 실제 LangSmith 화면 · VRAM · 답 시간 |
 | `ChatOllama` · `OllamaEmbeddings` 생성자 인자가 실제 클래스에서 받아들여짐 | 모델이 «찾지 못했습니다» · 지시 바꾸기 거절을 실제로 하는지 |
 
 `config.STRATEGY` · `YEAR_BONUS` 기본값은 **`basic` · `0`** 그대로입니다 — 7-3절 실측 전에는 바꾸지 않습니다.
