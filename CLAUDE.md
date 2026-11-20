@@ -9,14 +9,21 @@
 
 슬랙에서 «뽁뽁이 어떻게 버려?» 라고 물으면, 분리배출 PDF 2건에서 근거를 찾아(RAG) 배출 방법 + 출처(품목 · 문서 · 연도 · 쪽)를 스레드에 답하는 봇.
 동양미래대 «최신인공지능» 수업(학번 20241499) 미니 프로젝트. **응답은 한국어로.**
+수업 저장소의 `mini_project/` 를 2026-11-20 에 커밋 기록째 옮겨 온 **독립 저장소**입니다(아래 «저장소 두 곳»).
 
-## ▶ 다음 세션은 여기부터 (2026-11-19 기준)
+## ▶ 다음 세션은 여기부터 (2026-11-20 기준)
 
 **상태: 완료.** 수업 PDF 의 필수 요건과 14주차 제출물(코드 + README + LangSmith 추적 캡처)이 모두 `main` 에 있습니다.
 급한 일은 없습니다 — 사용자가 새로 요청하는 것부터 하면 됩니다.
 
+- **저장소 두 곳** (2026-11-20)
+  - **이 저장소 `recycle-rag-slack-bot` 이 원본** — 앞으로의 수정은 여기에만
+  - 수업 저장소 [`langchain-2026-20241499`](https://github.com/Jinseok2419342/langchain-2026-20241499) 의 `mini_project/` 는 2026-11-19 상태(커밋 `944b556`)로 **동결 · 수정하지 않음**.
+    이 저장소의 태그 `imported-from-class-repo` 가 그 상태와 바이트 단위로 같은 커밋
+  - 강의 PDF · 수업 실습 코드(`11-06/` · `11-13/` · `10-30/` …)는 **수업 저장소에만** 있음 — 이 문서 · SPEC 의 `11-06/…` 표기는 그 저장소 경로.
+    문서의 링크는 수업 저장소 커밋 `59cd1d3` 에 고정. 클라우드 세션에서 읽어야 하면 `add_repo` 로 수업 저장소(public)를 붙임
 - **판단 기준 (사용자가 정함)** — «수업 자료의 형식 · 요건을 충족하는가» 가 전부입니다.
-  기준 문서: `11-06/2교시_분할_메타데이터와_프로젝트_착수.pdf` §4-1 ~ §4-4 (23 ~ 29쪽) · `11-06/project_template/README.md` · `CONTEXT.md`.
+  기준 문서(수업 저장소): [`11-06/2교시_분할_메타데이터와_프로젝트_착수.pdf`](https://github.com/Jinseok2419342/langchain-2026-20241499/blob/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/2%EA%B5%90%EC%8B%9C_%EB%B6%84%ED%95%A0_%EB%A9%94%ED%83%80%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%99%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%B0%A9%EC%88%98.pdf) §4-1 ~ §4-4 (23 ~ 29쪽) · [`11-06/project_template/`](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/project_template) 의 `README.md` · `CONTEXT.md`.
   README 끝의 «필수 요건 대조» 표 · «제출 체크리스트» 가 이것과 맞춰져 있습니다(2026-11-19 전부 ✅ 확인).
   모델 성능을 더 깊게 재검증하거나, 메인 PC(한글 경로)에서 다시 세팅할 필요는 **없다** 고 사용자가 결정함 — 같은 사양의 보조 PC 에서 처음부터 세팅해 통과했음.
 - **남은 것: 없음.** 시나리오 8(Ollama 를 끈 상태의 오류 처리)은 SPEC 6-5 에 스스로 적어 둔 점검 항목일 뿐 **수업 요건이 아님** — 사용자가 원할 때만.
@@ -25,13 +32,21 @@
   - 커밋 작성자는 **사용자 계정** — 기존 커밋과 같은 작성자(`git log --format='%an <%ae>' -3` 로 확인 · `Jinseok2419342`)를
     `git -c user.name=… -c user.email=… commit` 으로 지정. `Co-Authored-By` · `Claude-Session` 같은 **Claude 서명 줄은 넣지 않음** (사용자 요청 · 하네스 기본 안내보다 우선)
   - 커밋 · 푸시 · `main` 반영 · 파일 삭제 · `.env` 수정은 **사용자 확인 뒤**. `main` 반영은 작업 브랜치에서 fast-forward(`git push origin HEAD:main`)
-  - 커밋 메시지는 한국어, `mini_project: …` 형식
+  - 커밋 메시지는 한국어 · **접두어 없이** (수업 저장소 시절 커밋은 `mini_project: …`)
 - **클라우드 세션(claude.ai/code)에서 열었을 때** — GPU · Ollama · 루트 `.env` · 68MB 사례집 PDF · 파이썬 패키지가 **없습니다**.
   모델 · 슬랙 · LangSmith 실행은 못 하고 문서 · 코드 읽기와 수정만 됩니다. 실행이 필요하면 사용자가 보조 PC 에서 돌리고 결과(캡처 · 출력)를 줌.
-  `kwaste.or.kr`(사례집 PDF 받는 곳)은 클라우드 네트워크에서 막혀 있음. 세션이 끝날 때 «커밋 안 된 변경» 훅이 돌면 작업 브랜치까지만 푸시하고 `main` 은 확인 뒤
+  `kwaste.or.kr`(사례집 PDF 받는 곳)은 클라우드 네트워크에서 막혀 있음. 세션이 끝날 때 «커밋 안 된 변경» 훅이 돌면 작업 브랜치까지만 푸시하고 `main` 은 확인 뒤에 반영
 - **이미지를 받을 때** — 채팅에 붙인 이미지는 폭 2000px JPG 로 줄어듦 → 문서에 넣을 원본은 **ZIP 으로** 받기 (scratchpad 의 새 폴더에 풀고 `__MACOSX` 는 버림)
 - **2026-11-19 에 한 일** — CLAUDE.md 깨진 곳 복구 · 미결 2 · 3 · 8 반영 · LangSmith 3장 + 슬랙 2장 캡처(`docs/*.png` · README 2 · 4번) ·
   `not_done_plan.md` 삭제 · 옛 문장 정리 · 이 절 추가. 모두 사용자 계정으로 `main` 에 반영
+- **2026-11-20 에 한 일 — 독립 저장소로 옮김** (수업 저장소는 건드리지 않음)
+  - `git subtree split --prefix=mini_project` 로 커밋 13개를 날짜 · 메시지 그대로 가져옴 → 태그 `imported-from-class-repo`.
+    옛 커밋 2개(11-06 · 11-13)의 깨진 작성자 이름(터미널 화살표 키 입력이 섞임)만 `Jinseok2419342` 로 고침
+  - 그 위에 커밋 4개: `.gitignore` 새로 · 코드 속 경로 안내 문구(**로직 0줄** — 문자열만 뺀 AST 비교로 확인) ·
+    문서 경로와 수업 저장소 고정 링크(`59cd1d3`) · 이 파일
+  - 옮기며 바로잡은 것: `offline_check.py` 가 `index_recycle/` 을 덮어쓴다는 안내(틀렸음 — 아래 진행 기록) · architecture.md 줄 수 표
+  - ⏳ **사용자 PC 에서 새 클론으로 확인 대기** — `build_index.py --check` · `tests/offline_check.py` · `build_index.py` ·
+    `rag_backend.py 검색 "선글라스"`. 결과가 오면 README 5번 머리에 «옮긴 뒤 다시 확인함» 한 줄을 채울 것
 
 ## 진행 기록 (2026-11-17 첫 실행 · 2026-11-19 마무리)
 
@@ -69,7 +84,9 @@
 - **MultiQuery 가 진 이유**: 다시 쓰기 프롬프트의 예시(«쓰봉 → 종량제봉투, 락앤락 → 플라스틱 밀폐용기»)를 A.X 가 거의 모든 질문에 끌어다 씀 («플라스틱 밀폐용기에 담긴 아이스팩 처리 방법»). 검색어 대신 답 문장을 쓰기도 함(«마트 영수증은 종이류로 분리배출해야 합니다.»). 프롬프트를 고치면 다시 잴 수 있음 — 지금은 «효과 없음» 으로 기록
 - **`recent` 프롬프트**: y2 를 «찾지 못했습니다» 로 바꾸고(자기모순), bonus 0.09 와 함께 쓰면 y1 이 오답 → 채택 안 함
 - **`year_bonus` 0.09 채택**: SPEC 7-3 의 `year_bonus` 규칙(«Top-3 가 줄지 않고 c1 이 깨지지 않는 값 중 연도충돌 2026 이 가장 많은 값»)으로 채택. 생성 정답은 28 = 28 로 같음 — README 의 «최신 사례 우선» 을 실제로 보여 주려고 사용자가 승인. `tests/offline_check.py` 검사도 0.09 로 바꿈
-- ⚠️ `tests/offline_check.py` 는 가짜 임베딩으로 `index_recycle/` 을 **덮어씀** → 돌린 뒤에는 반드시 `python build_index.py` 로 실제 인덱스를 다시 만들 것 (manifest 의 `embed_model` 이 `fake-embed` 면 봇이 시작을 거부함)
+- ℹ️ `tests/offline_check.py` 는 인덱스 · 평가 결과를 **임시 폴더에만** 만들고 지움 — `index_recycle/` · `eval_results/` 를 건드리지 않음
+  (`RECYCLE_INDEX` 를 임시 폴더의 절대 경로로 둠 · 첫 커밋 11-14 부터 그랬음). 예전 이 자리의 «덮어쓴다 → 다시 만들 것» 경고는
+  틀린 것이었음 (2026-11-20 코드로 확인 · README 5-6 도 고침). manifest 의 `embed_model` 이 다르면 봇이 시작을 거부하는 장치는 그대로
 
 **일정**: 13주차(11/27) 중간 점검 — 수업 시간의 진행 확인 · 상담(슬랙 왕복은 이미 됨) · **14주차(12/4) 최종 제출**.
 제출물 = 코드 + README + LangSmith 추적 캡처(필수) — 전부 저장소에 있음. 제출 방법 · 제출처는 수업 공지를 따름(사용자 확인).
@@ -101,41 +118,40 @@
 - **MultiQuery** 와 **`year` 최신 우선 재정렬**은 반드시 구현. MMR · 하이브리드 · Self-Query · 본문 인용 번호는 넣지 않음
 - 모델 설정은 전용 키 **`RECYCLE_*` + 코드 기본값**. 루트 `.env` 의 `MODEL` · `EMBED_MODEL` 은 건드리지 않음
 - **OpenAI 백엔드 제거** — Ollama 만
+- ✅ **독립 저장소 `recycle-rag-slack-bot` 으로 옮김** — 히스토리 보존 · 이 저장소가 원본 · 수업 저장소 `mini_project/` 는 동결 (2026-11-20)
 - ✅ LangSmith 프로젝트 이름은 `config.py` 가 `recycle-bot-20241499` 로 지정(`RECYCLE_LANGSMITH_PROJECT` 로 바꿀 수 있음) — 2026-11-17 승인 · README 체크리스트 · CONTEXT «관측» 도 고침 (미결 1)
 
 ## 폴더 구조
 
 ```
-langchain_20241499/                ← git 저장소 루트 (github.com/Jinseok2419342/langchain-2026-20241499)
-├── .env                           ← 토큰 · 설정. 절대 커밋 금지 (.gitignore 됨)
+recycle-rag-slack-bot/             ← git 저장소 맨 위 (github.com/Jinseok2419342/recycle-rag-slack-bot) · ★ 모든 명령은 여기서
+├── .env                           ← 토큰 · 설정. 절대 커밋 금지 (.gitignore 됨 · 수업 저장소의 루트 .env 를 복사해 써도 됨)
 ├── venv/                          ← 파이썬 가상환경 (.gitignore 됨)
-├── 11-06/                         ← 10주차 실습 — 복사 출발점 (수정 금지 · 읽기/복사만)
-├── 11-13/                         ← 11주차 실습 — MultiQuery · 하이브리드 · 인용 예제 (참고용 · 수정 금지)
-└── mini_project/                  ← ★ 이 프로젝트 (모든 명령은 여기서 실행)
-    ├── README.md · CONTEXT.md     ← 명세 (채점 대상)
-    ├── SPEC.md                    ← 상세 구현 명세서
-    ├── CLAUDE.md                  ← 이 파일
-    ├── config.py                  ← 공용 상수 · 경로 · RECYCLE_* · LangSmith 프로젝트 지정 (모든 파일이 맨 먼저 import)
-    ├── faiss_io.py                ← 11-06/faiss_io.py 를 그대로 복사 (한글 경로 대비 · 수정 금지)
-    ├── build_index.py             ← PDF 2건 → 정리 → 구역별 구조 분할 → 메타데이터 → FAISS
-    ├── rag_backend.py             ← 검색기(RecycleRetriever) · ask · ask_plain · search · source_of · warmup
-    ├── slack_rag_bot.py           ← Socket Mode 봇 (입구 · 출구)
-    ├── questions.py               ← 평가 문항 30개 (+ 자기 검사)
-    ├── evaluate.py                ← retrieval | answer 측정 → eval_results/
-    ├── requirements.txt · .env.example
-    ├── tests/offline_check.py     ← 모델 없이 코드 경로 확인 (41항목)
-    ├── docs/architecture.md       ← 구성도 · 프로세스 · 흐름도 (Mermaid 8개)
-    ├── docs/scenarios.md          ← 가상 시나리오 8개 (Mermaid 8개)
-    ├── docs/*.png                 ← 캡처 5장 (trace-rag · trace-retriever · trace-build · slack-thread · slack-compare)
-    ├── scratch_eval.py            ← 10주차 생성 모델 비교 스크립트 (CONTEXT 부록 C 재현용 · 그대로 둠)
-    ├── index_recycle/             ← build_index.py 가 만듦 (gitignore · 보조 PC 에만 있음)
-    ├── eval_results/              ← evaluate.py 가 만듦 (커밋함 · 2026-11-17 실행 7회분)
-    └── data/
-        ├── 분리배출_가이드라인.pdf        ← 커밋됨 (4.8MB · 36쪽)
-        └── 분리배출_QA사례100_2026.pdf   ← ⚠️ 68MB · gitignore → 없으면 아래 명령으로 받기
+├── .gitignore                     ← .env · venv · /index*/ · 사례집 PDF
+├── README.md · CONTEXT.md         ← 명세 (채점 대상)
+├── SPEC.md                        ← 상세 구현 명세서
+├── CLAUDE.md                      ← 이 파일
+├── config.py                      ← 공용 상수 · 경로 · RECYCLE_* · LangSmith 프로젝트 지정 (모든 파일이 맨 먼저 import)
+├── faiss_io.py                    ← 수업 저장소 11-06/faiss_io.py 를 그대로 복사 (한글 경로 대비 · 수정 금지)
+├── build_index.py                 ← PDF 2건 → 정리 → 구역별 구조 분할 → 메타데이터 → FAISS
+├── rag_backend.py                 ← 검색기(RecycleRetriever) · ask · ask_plain · search · source_of · warmup
+├── slack_rag_bot.py               ← Socket Mode 봇 (입구 · 출구)
+├── questions.py                   ← 평가 문항 30개 (+ 자기 검사)
+├── evaluate.py                    ← retrieval | answer 측정 → eval_results/
+├── requirements.txt · .env.example
+├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (41항목)
+├── docs/architecture.md           ← 구성도 · 프로세스 · 흐름도 (Mermaid 8개)
+├── docs/scenarios.md              ← 가상 시나리오 8개 (Mermaid 8개)
+├── docs/*.png                     ← 캡처 5장 (trace-rag · trace-retriever · trace-build · slack-thread · slack-compare)
+├── scratch_eval.py                ← 10주차 생성 모델 비교 스크립트 (CONTEXT 부록 C 재현용 · 그대로 둠)
+├── index_recycle/                 ← build_index.py 가 만듦 (gitignore · 보조 PC 에만 있음)
+├── eval_results/                  ← evaluate.py 가 만듦 (커밋함 · 2026-11-17 실행 7회분)
+└── data/
+    ├── 분리배출_가이드라인.pdf            ← 커밋됨 (4.8MB · 36쪽)
+    └── 분리배출_QA사례100_2026.pdf       ← ⚠️ 68MB · gitignore → 없으면 아래 명령으로 받기
 ```
 
-### 문서 받기 (data/ 에 사례집이 없을 때 · PowerShell, mini_project 에서)
+### 문서 받기 (data/ 에 사례집이 없을 때 · PowerShell, 저장소 맨 위에서)
 
 ```powershell
 Invoke-WebRequest "https://sustainability.korea.ac.kr/files/Separation%20and%20discharge%20guide%20for%20recycling%20items%20(Ministry%20of%20Environment).pdf" -OutFile "data\분리배출_가이드라인.pdf"
@@ -150,19 +166,19 @@ Invoke-WebRequest "https://www.kwaste.or.kr/lib/fileDownload.php?save_file=attac
 > 다른 PC 에서 처음부터 다시 돌릴 때도 이 순서. 0번(모델 pull · 사례집 PDF)은 PC 마다 필요.
 
 ```powershell
-cd mini_project
+cd recycle-rag-slack-bot
 $env:PYTHONUTF8=1
 ```
 
 | # | 명령 | 통과 조건 | 막히면 |
 |---|---|---|---|
-| 0 | `ollama pull hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M` · `ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0` · 루트 `.env` 의 `LANGSMITH_TRACING=true` · `ollama ps` 로 GPU 비우기 · 10주차 봇 끄기 | `ollama list` 에 두 줄 | SPEC 2-2절 |
+| 0 | `ollama pull hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M` · `ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0` · 루트 `.env` 의 `LANGSMITH_TRACING=true` · `ollama ps` 로 GPU 비우기 · 10주차 봇 · 수업 저장소의 같은 봇 끄기 | `ollama list` 에 두 줄 | SPEC 2-2절 |
 | 1 | `python build_index.py --check` | 15항목 ✅ (임베딩 없음) | 사례집 PDF 가 없으면 위 «문서 받기» |
 | 2 | `python tests/offline_check.py` | `ALL OK` (41항목 · 모델 없음) | 패키지 버전 차이 — 메인 PC 는 Python 3.13 · 이 검사는 3.11 에서 돌렸음 |
 | 3 | `python build_index.py` | `✅ 저장` + 되읽기 확인 줄에 «안경·선글라스 p.31» · `index_recycle/manifest.json` 생김 | 한글 경로면 `index.bytes` 로 저장되는 것이 정상 |
 | 4 | `python rag_backend.py "뽁뽁이는 어떻게 버려요?"` · `검색 "선글라스"` · `비교 "마트 영수증은 종이로 버려도 돼?"` | 검색 1~3위에 정답 품목 · 답 · 근거 줄 | 검색이 엉뚱하면 임베딩 모델 · manifest 부터 |
 | 5 | `python evaluate.py answer --ids scratch` | 10주차와 같은 6문항 — **6/6 이 나오는지** (CONTEXT 부록 C 와 비교) | 6/6 이 아니면 분할이 바뀐 영향 — 어느 문항인지 `eval_results/` 에서 확인 |
-| 6 | `python slack_rag_bot.py` → 슬랙에서 멘션 · DM · `검색` · `비교` · 빈 멘션 | SPEC 6-5절 체크리스트 · LangSmith 에 `recycle-rag` trace · `nvidia-smi` 8GB 미만 | 봇이 답을 안 하면 `10-30/socket_hello.py` 로 슬랙 쪽부터 |
+| 6 | `python slack_rag_bot.py` → 슬랙에서 멘션 · DM · `검색` · `비교` · 빈 멘션 | SPEC 6-5절 체크리스트 · LangSmith 에 `recycle-rag` trace · `nvidia-smi` 8GB 미만 | 봇이 답을 안 하면 슬랙 앱 설정(README 5-2 ⑤)부터 — 수업 저장소의 `10-30/socket_hello.py` 로 확인해도 됨 |
 | 7 | `python build_index.py --mode recursive --out index_recursive` → `python evaluate.py retrieval --index index_recursive` → `python evaluate.py retrieval` → `python evaluate.py answer` (→ `--prompt recent`) | E1~E4 결과가 `eval_results/` 에 | SPEC 7-3절 채택 규칙 |
 | 8 | 채택한 값을 `config.py` 기본값에 반영 → README 5 · 6번 · CONTEXT 부록 D · E · `docs/scenarios.md` 의 «예상» 을 실제 출력으로 → LangSmith 캡처 7장 | SPEC 8-2절 · 9장 | 캡처는 **사용자가 직접** · 무료 플랜 14일 → 이미지로 저장하면 기간 상관없음 (2026-11-19 완료) |
 
@@ -185,8 +201,10 @@ $env:PYTHONUTF8=1
 
 > 실제 실행 · 검증은 같은 사양의 보조 PC(영문 경로)에서 함(2026-11-17). 메인 PC 재세팅 · 한글 경로 재검증은 하지 않기로 함(2026-11-19 · 평가 항목 아님).
 
-- **OS: Windows** · PowerShell / Git Bash. **경로에 한글(`최신인공`)이 있음** ← 함정 1
-- 파이썬: `..\venv\Scripts\python.exe` (3.13.3). 필요한 패키지는 설치돼 있음 — 새 패키지를 추가하지 않음
+- **OS: Windows** · PowerShell / Git Bash. **경로에 한글(`최신인공`)이 있음** ← 함정 1 — 수업 저장소가 놓인 메인 PC 경로 얘기.
+  이 저장소는 영문 경로(예: `C:\dev\recycle-rag-slack-bot`)에 클론하길 권함 (README 5-2 ①)
+- 파이썬 3.13.3 — 수업 저장소에서는 `..\venv\Scripts\python.exe`, 이 저장소에서는 맨 위에 새로 만든 `.\venv\Scripts\python.exe`
+  (`pip install -r requirements.txt`). 새 패키지를 추가하지 않음
 - `venv/` · `.env` · `index*/` · 사례집 PDF 는 gitignore 라 **다른 클론에는 없음**
 - Ollama 0.32.14 · 모델:
 
@@ -197,13 +215,13 @@ $env:PYTHONUTF8=1
 | `gemma3:4b` · `qwen3-embedding:0.6b` | 수업 기본 — **비교 기준으로만** | 설치됨 |
 | `exaone3.5:2.4b` | 생성 모델 대체용 (`RECYCLE_MODEL` 로 교체 · 인덱스 재생성 불필요) | 설치됨 |
 
-- 루트 `.env` (값은 출력하지 말 것 · 키 이름은 [.env.example](.env.example)):
+- 루트 `.env` (= 저장소 맨 위 · 값은 출력하지 말 것 · 키 이름은 [.env.example](.env.example) · 수업 저장소의 루트 `.env` 를 그대로 복사해 써도 됨):
 
 | 키 | 현재 | 할 일 |
 |---|---|---|
 | `SLACK_BOT_TOKEN` · `SLACK_APP_TOKEN` · `LANGSMITH_API_KEY` | 있음 | 그대로 |
 | `LANGSMITH_TRACING` | 보조 PC `true` (2026-11-17) · 메인 PC `false` | 추적하려면 `true` |
-| `EMBED_MODEL` · `MODEL` | 다른 주차 실습용 | **건드리지 않음** — 이 프로젝트는 읽지 않음 |
+| `EMBED_MODEL` · `MODEL` | 수업 저장소에서 복사해 왔다면 있음 (다른 주차 실습용) | **건드리지 않음** — 이 프로젝트는 읽지 않음 |
 | `RECYCLE_*` | 없음 | 넣지 않아도 됨. 바꿔서 잴 때만 |
 
 - 환경 변수로 바꿀 수 있는 것: `RECYCLE_MODEL` · `RECYCLE_EMBED_MODEL` · `RECYCLE_STRATEGY`(basic\|multiquery) · `RECYCLE_YEAR_BONUS` · `RECYCLE_PROMPT`(base\|recent) · `RECYCLE_INDEX` · `RECYCLE_LANGSMITH_PROJECT`.
@@ -246,7 +264,7 @@ $env:PYTHONUTF8=1
 
 ## 함정 (밟았거나 실측으로 확인한 것 · 전체는 SPEC 12장)
 
-1. **한글 경로 + FAISS** — `store.save_local()` 이 RuntimeError. 반드시 `faiss_io.save_index` / `load_index` (`index.bytes` 로 저장되는 것이 정상)
+1. **한글 경로 + FAISS** — `store.save_local()` 이 RuntimeError. 반드시 `faiss_io.save_index` / `load_index` (`index.bytes` 로 저장되는 것이 정상) · 영문 경로에 클론하면 아예 안 생김
 2. **머리말 정규식은 문서별로 2개** (`build_index.py` 의 `HDR_G` · `HDR_Q`). ⚠️ `scratch_eval.py` 의 `HDR` 은 **쓰지 말 것** — 가이드라인 머리말 34줄 중 17줄이 남고, 사례집의 **사례 번호 줄**까지 지움
 3. **사례집을 날짜 순서대로 자르면 100건 중 24건이 틀림** — 2단 배치. 품목 이름으로 짝짓기(`parse_qa_page`). 파서를 고치면 반드시 `--check`
 4. **품목사전** — 30자 필터 금지(평균 20자). 초성 줄은 14글자만 지움(낫 · 못 · 컵 … 은 품목). 뜻이 틀어진 4건은 `ITEM_DROP`
@@ -259,13 +277,15 @@ $env:PYTHONUTF8=1
 11. **Ollama 가 안 쓰는 모델도 5분간 GPU 에 남김** — 측정 전 `ollama ps` → `ollama stop <모델>`
 12. **토큰 검사를 접두어(`xoxb-`)로 하면 안 됨** — 봇 코드의 접두어 검사에 걸림. SPEC 1장 «토큰 누출 검사» 의 식 사용
 13. **콘솔 cp949** — 스크립트는 `sys.stdout.reconfigure(encoding="utf-8")` 를 함. PowerShell 은 `$env:PYTHONUTF8=1`
-14. **10주차 봇과 동시 실행 금지** — 같은 `SLACK_APP_TOKEN` 이면 이벤트가 둘로 갈림
+14. **10주차 봇 · 수업 저장소의 같은 봇과 동시 실행 금지** — 같은 `SLACK_APP_TOKEN` 이면 이벤트가 둘로 갈림
 15. `pypdf` 직접 호출과 `PyPDFLoader` 는 쪽 끝 공백이 달라 글자 수 · 재귀 청크 수가 1씩 다를 수 있음 → 문서에는 구현 출력값
 16. **임베딩을 한 요청에 456개 보내면 Ollama 0.32.14 러너가 간헐적으로 죽음** (`…/tokenize: connection refused` · 3회 중 2회) → `build_index.py` 는 `EMBED_BATCH = 64` 개씩 보냄 (2026-11-17 · SPEC 13-1 k)
 17. **DM 이 안 오면 봇 토큰 scope 에 `im:history` 가 있는지** — `app_mentions:read` 만 있으면 멘션만 됨. scope 추가 후 **Reinstall to Workspace** 필요. App Home 의 Messages Tab 도 켤 것
 18. **슬랙의 실제 봇 이름은 `@Jinseok-20241499-Bot`** — 문서의 `@버릴지도` 는 별명. `@봇 @버릴지도 검색 …` 처럼 두 번 쓰면 `검색` · `비교` 모드가 안 걸림
 19. 보조 PC 의 Ollama 는 PATH 에 없음 (`%LOCALAPPDATA%\Programs\OllamaAIClass\ollama.exe`) — `evaluate.py` 가 `ollama ps` 를 부르므로 `$env:Path += ";$env:LOCALAPPDATA\Programs\OllamaAIClass"` 후 실행
 20. PowerShell 에서 한글이 깨지면 `[Console]::OutputEncoding=[Text.Encoding]::UTF8` (`PYTHONUTF8` 만으로는 파이프 출력이 깨짐)
+21. **이 저장소를 수업 저장소 폴더 안에 클론하지 말 것** — `.env` 가 없으면 `load_dotenv()` 가 위 폴더로 올라가며 찾아
+    수업 저장소의 루트 `.env` 를 읽어 버림(헷갈림). 따로 영문 경로에 두고 `.env` 는 이 저장소 맨 위에 복사
 
 ## 사용자 확인이 필요한 미결 사항 (SPEC 13장)
 
@@ -286,7 +306,7 @@ $env:PYTHONUTF8=1
 - 새 숫자는 **실제로 돌려서** 얻은 것만 적을 것. 추정이면 «계산» · «예상» 이라고 표시. 효과가 없었으면 없었다고 적을 것
 - 한 번에 하나만 바꾸고 잴 것 (임베딩 · 분할 · 검색 전략 · 프롬프트)
 - 코드를 고치면 `python build_index.py --check` · `python tests/offline_check.py` 를 다시 돌릴 것
-- `11-06/` · `11-13/` 의 파일과 인덱스는 수정하지 말 것 (읽기 · 복사만)
+- 수업 저장소(`11-06/` · `11-13/` · 동결된 `mini_project/`)는 수정하지 말 것 — 읽기 · 링크만
 - 토큰 · 키를 코드 · 로그 · 커밋 · 슬랙 메시지에 넣지 말 것. `.env` 내용을 출력하지 말 것. 68MB PDF 커밋 금지
 - 커밋 · 푸시, 파일 삭제, `.env` 수정은 **사용자에게 확인받고** 할 것
-- 커밋 메시지는 한국어, 기존 형식(`mini_project: …`, `week10: …`)을 따름
+- 커밋 메시지는 한국어 · 접두어 없이 (수업 저장소 시절 커밋의 `mini_project: …` 는 그대로 둠)
