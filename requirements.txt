@@ -15,3 +15,4 @@ faiss-cpu             # 벡터 인덱스
 numpy
 
 slack_bolt            # Socket Mode 봇
+Pillow                # 사진 줄이기 · EXIF(촬영 위치) 삭제 — 📷 사진으로 묻기 (2026-11-24 추가 · 13.0.0 에서 확인)

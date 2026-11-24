@@ -49,6 +49,25 @@ PROMPT_VARIANT = os.getenv("RECYCLE_PROMPT", "base")       # base | recent — E
 TEMPERATURE, MAX_OUT, NUM_CTX = 0.1, 300, 4096
 KEEP_ALIVE = 1800       # 초(30분) — Ollama 가 모델을 5분 만에 내리지 않게 (첫 답 20초 문제)
 #                         ⚠️ 정수로 둘 것: OllamaEmbeddings 의 keep_alive 는 int 만 받는다 ("30m" 은 ValidationError)
+
+# 생각(thinking) 모드 — qwen3.5 는 기본이 켜짐이라 답 앞에 긴 생각 글을 쓴다 → 기본은 끈다
+#   off = think:false (생각 기능이 없는 gemma3:4b 도 받는다 — 2026-11-24 확인) · on = think:true · auto = 보내지 않음
+REASONINGS = {"off": False, "on": True, "auto": None}
+_reasoning = os.getenv("RECYCLE_REASONING", "off")
+if _reasoning not in REASONINGS:
+    raise SystemExit(f"RECYCLE_REASONING 은 {' | '.join(REASONINGS)} 중 하나여야 합니다 (지금: {_reasoning!r})")
+REASONING = REASONINGS[_reasoning]
+
+# ── 사진으로 묻기 — 사진은 «품목 이름 붙이기» 에만 쓰고, 답은 지금처럼 문서에서 (docs/photo-feature-plan.md) ──
+VISION_MODEL = os.getenv("RECYCLE_VISION_MODEL") or MODEL   # 비우면 생성 모델이 사진도 본다 (한 모델) · 따로 주면 두 모델
+PHOTO_SIDE = int(os.getenv("RECYCLE_PHOTO_SIDE", "768"))    # 긴 변을 이 픽셀까지 줄여 넣는다 (VRAM · 시간)
+PHOTO_MAX_BYTES = 15 * 1024 * 1024                          # 슬랙에서 받을 사진 원본 상한
+LABEL_MAX_OUT = 40                                          # 이름 붙이기는 짧게 — 토큰 상한
+UNKNOWN_LABEL = "모름"                                       # 비전 모델이 «물건이 아니다 · 모르겠다» 일 때
+# 확신 기준 — 1위 거리가 PHOTO_MAX_DIST 보다 멀거나, 다른 품목 후보와의 거리 차가 PHOTO_MIN_GAP 보다 작으면 «되묻기».
+#   0 = 쓰지 않음 (항상 답 + 다른 후보 표시). 값은 사진 실측으로 정한다 (evaluate.py photo 의 거리 표).
+PHOTO_MAX_DIST = float(os.getenv("RECYCLE_PHOTO_MAX_DIST", "0"))
+PHOTO_MIN_GAP = float(os.getenv("RECYCLE_PHOTO_MIN_GAP", "0"))
 NOT_FOUND = "자료에서 찾지 못했습니다"
 MAX_QUESTION = 300
 TAG = "recycle-bot"
@@ -59,5 +78,11 @@ if STRATEGY not in STRATEGIES:
 
 
 def short_model(name: str = MODEL) -> str:
-    """«hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M» → «A.X-4.0-Light» (슬랙 꼬리 줄 · 로그용)."""
-    return name.rsplit("/", 1)[-1].split(":", 1)[0].removesuffix("-gguf")
+    """«hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M» → «A.X-4.0-Light» · «gemma4:e4b» → «gemma4:e4b» (슬랙 꼬리 줄 · 로그용).
+
+    Ollama 공식 모델은 태그가 크기(4b · e4b)라 남기고, hf.co/… 는 태그가 양자화 방식이라 뗀다.
+    """
+    base = name.rsplit("/", 1)[-1]
+    if name.startswith("hf.co/") or ":" not in base:
+        return base.split(":", 1)[0].removesuffix("-gguf")
+    return base

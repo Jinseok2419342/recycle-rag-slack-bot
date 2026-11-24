@@ -28,14 +28,22 @@
     python evaluate.py answer --strategy multiquery --year-bonus 0.05
     python evaluate.py answer --prompt recent
     python evaluate.py answer --ids scratch            # scratch_eval.py 의 6문항만 (10주차 6/6 과 비교)
-    python evaluate.py answer --model gemma3:4b        # (선택) 수업 기본 모델과 비교
+    python evaluate.py answer --model gemma3:4b        # 수업 기본 모델과 비교 (사진 기능 모델 고르기의 기준선)
+
+  photo — 사진 → 품목 이름 → 검색 · 답 (docs/photo-feature-plan.md 6장)
+    photos/<문항 id>.jpg  (예: c2.jpg) → questions.py 의 gold 로 채점: 정답 품목이 검색 3위 안에 오나 · 답이 맞나
+    photos/out_*.jpg      → 범위 밖 (음식 · 풍경 …): 엉뚱한 품목으로 답하지 않아야 정답 (못 알아봄 · 되묻기 · 찾지 못함)
+    python evaluate.py prep-photos --src photos_raw    # 원본 → photos/ (긴 변 1280px · EXIF(촬영 위치 등) 삭제) — 커밋용
+    python evaluate.py photo --model gemma4:e4b        # 한 모델이 사진 + 답
+    python evaluate.py photo --vision-model qwen3.5:0.8b   # 사진만 다른 모델 (답은 --model 또는 기본 생성 모델)
 """
 
 import os
 import sys
 
 # ★ config 를 import 하기 **전에** — 인덱스 · 모델 · 프롬프트는 «실행 한 번 = 설정 하나» 라서 환경 변수로 넘긴다
-for _flag, _key in (("--index", "RECYCLE_INDEX"), ("--model", "RECYCLE_MODEL"), ("--prompt", "RECYCLE_PROMPT")):
+for _flag, _key in (("--index", "RECYCLE_INDEX"), ("--model", "RECYCLE_MODEL"), ("--prompt", "RECYCLE_PROMPT"),
+                    ("--vision-model", "RECYCLE_VISION_MODEL")):
     for _i, _arg in enumerate(sys.argv):
         if _arg == _flag and _i + 1 < len(sys.argv):
             os.environ[_key] = sys.argv[_i + 1]
@@ -43,13 +51,17 @@ for _flag, _key in (("--index", "RECYCLE_INDEX"), ("--model", "RECYCLE_MODEL"), 
             os.environ[_key] = _arg.split("=", 1)[1]
 
 import config  # noqa: E402,F401
-from config import EMBED_MODEL, HERE, INDEX_DIR, MODEL, PROMPT_VARIANT, SHORT_NAME, STRATEGIES, TAG, TOP_K  # noqa: E402
+from config import (  # noqa: E402
+    EMBED_MODEL, HERE, INDEX_DIR, MODEL, PROMPT_VARIANT, SHORT_NAME, STRATEGIES, TAG, TOP_K, VISION_MODEL,
+)
 
 import argparse  # noqa: E402
 import json  # noqa: E402
+import math  # noqa: E402
 import statistics  # noqa: E402
 import subprocess  # noqa: E402
 import time  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 import rag_backend as rb  # noqa: E402
 from questions import NO_RETRIEVAL, QUESTIONS, SCRATCH_IDS, YEAR_WATCH, is_hit  # noqa: E402
@@ -58,6 +70,9 @@ RESULT_DIR = HERE / "eval_results"
 REPEATS = 3                                    # multiquery 반복 횟수
 KINDS = ("표준", "생활용어", "연도충돌", "품목사전")
 OX = {True: "○", False: "×"}
+PHOTO_EXT = (".jpg", ".jpeg", ".png", ".webp")
+PHOTO_PASS = 0.75          # 사진 합격선 — 20장 중 15장 이상 정답 품목이 검색 3위 안 (사용자 확정 2026-11-24 · 측정 전에 고정)
+PREP_SIDE = 1280           # prep-photos: 커밋할 사본의 긴 변 (봇은 여기서 다시 config.PHOTO_SIDE 로 줄인다)
 
 
 # ── 공통 ───────────────────────────────────────────────────────────
@@ -275,24 +290,177 @@ def run_answer(args) -> None:
                            "gpu": gpu, "warmup_sec": warm, "rows": rows})
 
 
+# ── photo ──────────────────────────────────────────────────────────
+def photo_set(folder: Path) -> tuple[list[tuple[Path, tuple | None]], list[str]]:
+    """photos/<id>.jpg → (경로, 문항) · photos/out_*.jpg → (경로, None). 모르는 이름은 건너뛴다."""
+    by_id = {q[0]: q for q in QUESTIONS if q[3]}                  # gold 가 있는 문항만 (범위밖 · 입력검증 제외)
+    items, skipped = [], []
+    for p in sorted(folder.iterdir()):
+        if p.suffix.lower() not in PHOTO_EXT:
+            continue
+        stem = p.stem.lower()
+        if stem.startswith("out_"):
+            items.append((p, None))
+        elif stem in by_id:
+            items.append((p, by_id[stem]))
+        else:
+            skipped.append(p.name)
+    return items, skipped
+
+
+def run_prep_photos(args) -> None:
+    """원본 사진 → 커밋용 사본: 회전 정보 반영 · 긴 변 PREP_SIDE px · EXIF(촬영 위치 · 기기) 삭제 · JPEG."""
+    from PIL import Image, ImageOps
+    src, dst = Path(args.src), Path(args.dir)
+    if not src.is_dir():
+        raise SystemExit(f"원본 폴더가 없습니다: {src}")
+    dst.mkdir(exist_ok=True)
+    items, skipped = photo_set(src)
+    for p, q in items:
+        with Image.open(p) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            orig = im.size
+            im.thumbnail((PREP_SIDE, PREP_SIDE))
+            out = dst / f"{p.stem.lower()}.jpg"
+            im.save(out, "JPEG", quality=85)                     # exif= 를 주지 않으면 EXIF 가 붙지 않는다
+        with Image.open(out) as chk:
+            exif = len(chk.getexif())
+        print(f"  {p.name:24} {orig[0]}x{orig[1]} → {out.name} {im.size[0]}x{im.size[1]} · "
+              f"{out.stat().st_size // 1024}KB · EXIF {exif}개 · {q[2] if q else '범위 밖'}")
+    print(f"\n✅ {len(items)}장 → {dst}/" + (f"  (이름을 몰라 건너뜀: {', '.join(skipped)})" if skipped else ""))
+
+
+def run_photo(args) -> None:
+    folder = Path(args.dir)
+    if not folder.is_dir():
+        raise SystemExit(f"사진 폴더가 없습니다: {folder}  → photos/<문항 id>.jpg · photos/out_*.jpg")
+    items, skipped = photo_set(folder)
+    if args.ids:
+        want = {i.strip().lower() for i in args.ids.split(",")}
+        items = [(p, q) for p, q in items if p.stem.lower() in want]
+    if not items:
+        raise SystemExit(f"채점할 사진이 없습니다: {folder}")
+    strategy, year_bonus = rb._resolve(args.strategy, args.year_bonus)
+    rb.get_store()
+    print(f"사진 평가 — {len(items)}장 · 사진 {VISION_MODEL} → 생성 {MODEL} · {strategy} · year_bonus {year_bonus}")
+    print("모델 올리는 중…")
+    t = time.perf_counter()
+    rb.warmup()
+    with rb.tracing_context(enabled=False):                    # 사진 경로도 한 번 데워 둔다 — 첫 사진의 시간에서 로딩을 뺀다
+        rb.get_vision_llm().invoke(rb.photo_messages(rb.prepare_image(items[0][0].read_bytes())[0]))
+    warm = time.perf_counter() - t
+
+    rows = []
+    for p, q in items:
+        try:
+            out = rb.ask_photo(p.read_bytes(), "", {"source": "evaluate", "photo": p.name}, strategy, year_bonus,
+                               tags=["eval"])
+            err = ""
+        except Exception as e:
+            out = {"label": "", "raw_label": "", "decision": "error", "docs": [], "answer": "", "dist": None,
+                   "gap": None, "sec": 0.0, "label_sec": 0.0}
+            err = f"{type(e).__name__}: {e}"
+        docs, ans = out["docs"], out["answer"].strip()
+        row = {"photo": p.name, "id": q[0] if q else None, "what": q[2] if q else "범위 밖", "label": out["label"],
+               "raw_label": out["raw_label"], "decision": out["decision"], "dist": out["dist"], "gap": out["gap"],
+               "sources": [rb.source_of(d) for d in docs], "answer": ans, "sec": out["sec"],
+               "label_sec": out["label_sec"], "error": err}
+        if q:
+            row["top1"] = bool(docs) and is_hit(docs[0], q[3], SHORT_NAME)
+            row["top3"] = any(is_hit(d, q[3], SHORT_NAME) for d in docs)
+            row["verdict"] = grade_answer(ans, q[4], q[5]) if out["decision"] == "answer" else "no-answer"
+            mark = OX[row["top3"]]
+        else:
+            row["ok"] = out["decision"] in ("ask", "unknown") or (out["decision"] == "answer" and rb.is_not_found(ans))
+            mark = "✅" if row["ok"] else "❌"
+        rows.append(row)
+        print(f"{mark} [{out['sec']:4.1f}초] {p.name:16} «{out['label']}» → {out['decision']} · "
+              + (" / ".join(row["sources"][:1]) or err or "-") + (f"\n   {ans.replace(chr(10), ' ')[:150]}" if ans else ""))
+    gpu, ps = vram(), ollama_ps()
+
+    inn = [r for r in rows if r["id"]]
+    out_ = [r for r in rows if not r["id"]]
+    need = math.ceil(PHOTO_PASS * len(inn))
+    top3 = sum(r["top3"] for r in inn)
+    out_ok = sum(r["ok"] for r in out_)
+    secs = [r["sec"] for r in rows if r["sec"]]
+    lsecs = [r["label_sec"] for r in rows if r["label_sec"]]
+    passed = top3 >= need and out_ok == len(out_)
+    decisions = {d: sum(r["decision"] == d for r in rows) for d in ("answer", "ask", "unknown", "error")}
+
+    def dist_range(rs):
+        ds = [r["dist"] for r in rs if r["dist"] is not None]
+        return f"{min(ds):.3f} ~ {max(ds):.3f}" if ds else "-"
+
+    lines = header("사진 평가 (photo)", {"사진 모델": VISION_MODEL, "생성 모델": MODEL, "검색 전략": strategy,
+                                      "year_bonus": year_bonus, "프롬프트": PROMPT_VARIANT,
+                                      "사진 크기": f"긴 변 {config.PHOTO_SIDE}px",
+                                      "확신 기준": f"거리 {config.PHOTO_MAX_DIST or '끔'} · 차 {config.PHOTO_MIN_GAP or '끔'}"})
+    lines += [f"- 사진: {folder.as_posix()}/ — 범위 안 {len(inn)}장 · 범위 밖 {len(out_)}장"
+              + (f" (이름을 몰라 건너뜀: {', '.join(skipped)})" if skipped else ""), "",
+              "## 요약", "", "| 항목 | 값 |", "|---|---|",
+              f"| **사진 적중** (정답 품목이 검색 3위 안) | **{top3} / {len(inn)}** (합격선 {need}) |",
+              f"| 사진 적중 Top-1 | {sum(r['top1'] for r in inn)} / {len(inn)} |",
+              f"| 사진 → 답 정답 (must · bad 채점) | {sum(r['verdict'] == 'ok' for r in inn)} / {len(inn)} |",
+              f"| **범위 밖** — 엉뚱한 품목 답 없음 | **{out_ok} / {len(out_)}** |",
+              f"| 판정 (사진 합격선) | {'✅ 합격' if passed else '❌ 불합격'} |",
+              f"| 결정 | 답 {decisions['answer']} · 되묻기 {decisions['ask']} · 못 알아봄 {decisions['unknown']}"
+              + (f" · 오류 {decisions['error']}" if decisions["error"] else "") + " |",
+              f"| 1위 거리 — 범위 안 적중 / 범위 밖 | {dist_range([r for r in inn if r['top3']])} / {dist_range(out_)} |",
+              f"| 이름 붙이기 시간 | 평균 {sum(lsecs) / len(lsecs):.1f}초 · 최대 {max(lsecs):.1f}초 |" if lsecs
+              else "| 이름 붙이기 시간 | - |",
+              f"| 사진 1장 전체 시간 (이름 + 검색 + 답) | 평균 {sum(secs) / len(secs):.1f}초 · 최대 {max(secs):.1f}초 |"
+              if secs else "| 사진 1장 전체 시간 | - |",
+              f"| 워밍업 (모델 로딩) | {warm:.1f}초 |",
+              f"| 사진 처리 중 GPU 메모리 (nvidia-smi) | {gpu} |", "",
+              "## 사진별", "",
+              "| 사진 | 물건 (문항) | 붙인 이름 | 결정 | 1위 거리 | 다른 품목과 차 | 검색 3위 안 | 답 | 초 | 근거 1위 |",
+              "|---|---|---|---|---|---|---|---|---|---|"]
+    vmark = {"ok": "✅", "contradict": "⚠️ 자기모순", "wrong": "❌", "no-answer": "-"}
+    for r in rows:
+        dist = "-" if r["dist"] is None else f"{r['dist']:.3f}"
+        gap = "-" if r["gap"] is None else f"{r['gap']:.3f}"
+        got = OX[r["top3"]] if r["id"] else ("✅ 범위 밖 처리" if r["ok"] else "❌ 엉뚱한 답")
+        verdict = vmark[r["verdict"]] if r["id"] else "-"
+        label = (r["label"] or r["error"]).replace("|", "\\|")
+        lines.append(f"| {r['photo']} | {r['what']} | {label} | {r['decision']} | {dist} | {gap} | {got} | {verdict} | "
+                     f"{r['sec']:.1f} | {(r['sources'][:1] or ['-'])[0]} |")
+    lines += ["", "«1위 거리» · «다른 품목과 차» 는 확신 기준(RECYCLE_PHOTO_MAX_DIST · RECYCLE_PHOTO_MIN_GAP)을 정하는 재료다.",
+              "범위 안 적중과 범위 밖의 1위 거리가 갈리면 그 사이 값이 후보.", "",
+              "## 답 (앞 200자)", ""]
+    lines += [f"- **{r['photo']}** «{r['label']}» → " + (r["answer"].replace(chr(10), " ")[:200] or "(답 없음)")
+              for r in rows]
+    lines += ["", "## ollama ps", "", "```", ps, "```"]
+
+    print("\n" + "\n".join(lines[:lines.index("## 사진별")]))
+    save("photo", lines, {"index": INDEX_DIR.name, "manifest": rb.read_manifest(), "model": MODEL,
+                          "vision_model": VISION_MODEL, "embed_model": EMBED_MODEL, "strategy": strategy,
+                          "year_bonus": year_bonus, "prompt": PROMPT_VARIANT, "photo_side": config.PHOTO_SIDE,
+                          "top3": top3, "need": need, "inside": len(inn), "outside_ok": out_ok,
+                          "outside": len(out_), "passed": passed, "gpu": gpu, "warmup_sec": warm, "rows": rows})
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="분리배출 RAG 평가")
-    ap.add_argument("what", choices=("retrieval", "answer"))
+    ap.add_argument("what", choices=("retrieval", "answer", "photo", "prep-photos"))
     ap.add_argument("--index", help="인덱스 폴더 이름 (기본 index_recycle)")
     ap.add_argument("--model", help="생성 모델 (기본 config.MODEL)")
+    ap.add_argument("--vision-model", help="photo: 사진 모델 (기본 = 생성 모델 — 한 모델)")
     ap.add_argument("--prompt", choices=tuple(rb.RAG_PROMPTS), help="RAG 프롬프트 (기본 base)")
-    ap.add_argument("--strategy", choices=STRATEGIES, default=None, help="answer 전용")
-    ap.add_argument("--year-bonus", type=float, default=None, help="answer 전용")
+    ap.add_argument("--strategy", choices=STRATEGIES, default=None, help="answer · photo 전용")
+    ap.add_argument("--year-bonus", type=float, default=None, help="answer · photo 전용")
     ap.add_argument("--ids", help="문항 id 를 쉼표로 (예: c1,y2) · scratch = scratch_eval.py 의 6문항")
     ap.add_argument("--repeats", type=int, default=REPEATS, help="retrieval 의 multiquery 반복 횟수")
     ap.add_argument("--no-multiquery", action="store_true", help="retrieval 에서 LLM 없이 basic 만")
+    ap.add_argument("--dir", default="photos", help="photo · prep-photos: 사진 폴더 (기본 photos)")
+    ap.add_argument("--src", default="photos_raw", help="prep-photos: 원본 폴더 (기본 photos_raw · 커밋 안 함)")
     args = ap.parse_args()
+    run = {"retrieval": run_retrieval, "answer": run_answer, "photo": run_photo, "prep-photos": run_prep_photos}
     try:
-        (run_retrieval if args.what == "retrieval" else run_answer)(args)
+        run[args.what](args)
     finally:
-        from langchain_core.tracers.langchain import wait_for_all_tracers
-        wait_for_all_tracers()
+        rb.flush_traces()
 
 
 if __name__ == "__main__":

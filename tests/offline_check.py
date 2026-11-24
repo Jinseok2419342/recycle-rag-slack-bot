@@ -39,12 +39,16 @@ class FakeEmb(Embeddings):
 
 class FakeChat(BaseChatModel):
     model: str = "fake"; temperature: float = 0; num_predict: int = 0; num_ctx: int = 0; keep_alive: int = 0
+    reasoning: object = None
     mode: str = "normal"
+    label: str = "아이스팩"          # 사진이 들어오면 이 이름을 돌려준다 (가짜 비전 모델)
     @property
     def _llm_type(self): return "fake"
     def _generate(self, messages, stop=None, run_manager=None, **kw):
-        text = "\n".join(m.content for m in messages)
         if self.mode == "boom": raise RuntimeError("connection refused http://127.0.0.1:11434 C:\\secret\\path")
+        if any(isinstance(m.content, list) and any(p.get("type") == "image_url" for p in m.content) for m in messages):
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content=self.label))])
+        text = "\n".join(m.content for m in messages)
         if "검색 질문 3개" in text: out = "1. 에어캡 배출 방법\n- 완충재 비닐류 배출\n포장재 분리배출"
         elif "<근거>" in text:
             q = text.rsplit("질문:", 1)[1]
@@ -98,6 +102,44 @@ except ValueError: T(True, "모르는 strategy 거부")
 mixed = [d for d in rb.get_store().docstore._dict.values() if d.metadata["doc_type"] in ("faq", "qa_case")]
 T(rb.mixed_years([mixed[0], mixed[-1]]) and not rb.mixed_years([mixed[0]]), "mixed_years")
 
+print("== 사진 (rag_backend) ==")
+import io as _io
+from PIL import Image
+def img_bytes(size=(2000, 1000), fmt="PNG", mode="RGBA", exif=None):
+    b = _io.BytesIO(); im = Image.new(mode, size, (0, 120, 255, 128) if mode == "RGBA" else (0, 120, 255))
+    im.save(b, fmt, **({"exif": exif} if exif is not None else {})); return b.getvalue()
+jpeg, info = rb.prepare_image(img_bytes())
+T(info["size"] == [config.PHOTO_SIDE, config.PHOTO_SIDE // 2] and jpeg[:2] == b"\xff\xd8", f"prepare_image: 2000x1000 PNG(투명) → {info['size']} JPEG")
+ex = Image.Exif(); ex[0x010F] = "FakeMakerGPS"; ex[0x0112] = 6               # 제조사 + 회전(90°)
+j2, i2 = rb.prepare_image(img_bytes((200, 100), "JPEG", "RGB", ex))
+T(len(Image.open(_io.BytesIO(j2)).getexif()) == 0 and b"FakeMakerGPS" not in j2 and i2["size"] == [100, 200], "EXIF 삭제 · 회전 반영 (200x100 → 100x200)")
+try: rb.prepare_image(b"not an image"); T(False, "읽을 수 없는 사진 → PhotoError")
+except rb.PhotoError: T(True, "읽을 수 없는 사진 → PhotoError")
+T([rb.parse_label(x) for x in ("품목: 아이스팩.", "1. 선글라스\n설명", "<think>음…</think>\n«핫팩»", "잘 모름", "", "알 수 없음")]
+  == ["아이스팩", "선글라스", "핫팩", "모름", "모름", "모름"], "parse_label: 접두어 · 번호 · 생각 글 · 모름")
+with collect_runs() as cb: po = rb.ask_photo(img_bytes(), "", {"slack_user": "U1"})
+root = cb.traced_runs[0]; kids = [c.name for c in root.child_runs]
+T(len(cb.traced_runs) == 1 and root.name == "recycle-photo" and kids == ["describe-photo", "RecycleRetriever", "generate"], f"사진 trace 1건: {root.name} → {kids}")
+T(po["label"] == "아이스팩" and po["decision"] == "answer" and po["query"] == "아이스팩" and po["answer"] and len(po["docs"]) == 3, f"사진 → «{po['label']}» → 검색 → 답 ({po['decision']} · 1위 거리 {po['dist']})")
+T({"recycle-bot", "photo"} <= set(root.tags) and root.extra["metadata"]["vision_model"] == config.VISION_MODEL and "x" in root.extra["metadata"]["photo"] and root.extra["metadata"]["slack_user"] == "U1", "사진 tags · metadata (vision_model · 크기)")
+def _all_runs(r): yield r; yield from (x for c in r.child_runs for x in _all_runs(c))
+b64 = __import__("base64").b64encode(rb.prepare_image(img_bytes())[0]).decode()[:40]
+raw = json.dumps([r.inputs for r in _all_runs(root)], default=str, ensure_ascii=False)
+red = json.dumps([rb.redact_images(r.inputs) for r in _all_runs(root)], default=str, ensure_ascii=False)
+T(b64 in raw and b64 not in red and "base64," not in red and "<image " in red, "redact_images: trace 의 모든 run 입력에서 사진 → <image N bytes>")
+T(rb.trace_client() is None, "추적이 꺼져 있으면 사진용 LangSmith 클라이언트를 만들지 않음")
+ph =rb.ask_photo(img_bytes(), "이거 깨졌는데 어떻게 버려?")
+T(ph["query"] == "아이스팩 이거 깨졌는데 어떻게 버려?" and "사진 속 물건: 아이스팩" in ph["question"], "같이 쓴 글 → 검색어 · 질문에 함께")
+rb.get_vision_llm().label = "모름"
+with collect_runs() as cb: pu = rb.ask_photo(img_bytes())
+T(pu["decision"] == "unknown" and [c.name for c in cb.traced_runs[0].child_runs] == ["describe-photo"] and not pu["docs"], "«모름» → unknown (검색 · 생성 안 함)")
+rb.get_vision_llm().label = "아이스팩"; config.PHOTO_MAX_DIST = 1e-9
+with collect_runs() as cb: pa = rb.ask_photo(img_bytes())
+T(pa["decision"] == "ask" and [c.name for c in cb.traced_runs[0].child_runs] == ["describe-photo", "RecycleRetriever"] and pa["answer"] == "", "확신 기준을 넘으면 ask (후보만 · 생성 안 함)")
+config.PHOTO_MAX_DIST = 0
+d3 = rb.search("아이스팩")
+T(rb.confidence(d3)["dist"] == d3[0].metadata["distance"] and rb.decide("아이스팩", d3) == "answer" and rb.decide("모름", d3) == "unknown", "confidence · decide (기준 끔 → 항상 answer)")
+
 print("== manifest 불일치 → 멈춤 ==")
 mp = config.INDEX_DIR / "manifest.json"; keep = mp.read_text(encoding="utf-8")
 mp.write_text(keep.replace("fake-embed", "qwen3-embedding:0.6b"), encoding="utf-8"); rb.get_store.cache_clear()
@@ -140,6 +182,48 @@ old = next(d for d in docs2 if d.metadata["year"] == 2018 and "item" in d.metada
 T(s.MIXED_NOTE in s.rag_text("비닐류로 배출합니다.", [old, new], 0.5, False) and s.MIXED_NOTE not in s.rag_text("비닐류", [old, old], 0.5, False), "연도 섞임 안내 줄 · 근거 중복 제거")
 T(s.rag_text("x", [old, old], 0.5, False).count(rb.source_of(old)) == 1, "같은 출처는 한 번만")
 
+print("== slack 사진 ==")
+from unittest import mock
+IMG = {"files": [{"id": "F1", "mimetype": "image/png", "size": 1234, "url_private_download": "https://files.example/F1"}]}
+real_download = s.download
+s.download = lambda f, c: img_bytes()
+c = run("<@UBOT>", **IMG)
+T([k for k, _ in c] == ["post", "update"] and c[0][1]["text"] == s.PHOTO_HOLDER and c[0][1]["thread_ts"] == "111.1" and c[1][1]["ts"] == "p1", "사진: 📷 자리 → 같은 메시지를 고침 · 같은 스레드")
+T("«아이스팩»" in c[1][1]["text"] and "📚 *근거*" in c[1][1]["text"] and "_— photo · " in c[1][1]["text"], "사진 답: 📷 이름 + 답 + 📚 근거 + 꼬리 줄"); print("     ", c[1][1]["text"].replace("\n", " ⏎ ")[:230])
+c = run("<@UBOT> 핫팩은?", files=[{"mimetype": "application/pdf"}])
+T(c[0][1]["text"] == s.HOLDER, "사진이 아닌 파일 → 글 질문으로")
+c = run("<@UBOT>", files=[{"mimetype": "image/jpeg", "size": s.PHOTO_MAX_BYTES + 1}])
+T(len(c) == 1 and "MB" in c[0][1]["text"], "사진 크기 상한")
+rb.get_vision_llm().label = "모름"; c = run("<@UBOT>", **IMG)
+T(c[1][1]["text"].startswith(s.PHOTO_UNKNOWN) and "📚" not in c[1][1]["text"], "못 알아본 사진 → 이름으로 물어 달라는 안내")
+rb.get_vision_llm().label = "<!channel> 아이스팩"; c = run("<@UBOT>", **IMG)
+T("<!channel>" not in c[1][1]["text"] and "&lt;!channel&gt;" in c[1][1]["text"], "사진 이름도 이스케이프")
+rb.get_vision_llm().label = "아이스팩"; config.PHOTO_MAX_DIST = 1e-9; c = run("<@UBOT>", **IMG)
+T("이 중 무엇인가요" in c[1][1]["text"] and "1) " in c[1][1]["text"] and "📚" not in c[1][1]["text"], "애매하면 후보만 보여 주고 되묻기")
+config.PHOTO_MAX_DIST = 0
+s.download = lambda f, c: b"not an image"; c = run("<@UBOT>", **IMG)
+T(c[1][1]["text"].startswith("✋") and "읽지 못했" in c[1][1]["text"], "읽을 수 없는 사진 → ✋ 안내")
+def _boom(f, c): raise RuntimeError("HTTP 500 C:\\secret\\path")
+s.download = _boom; c = run("<@UBOT>", **IMG)
+T(c[1][1]["text"] == s.FAIL_TEXT and "secret" not in c[1][1]["text"], "사진 오류: 슬랙엔 일반 문구만")
+s.download = real_download
+
+class Resp:
+    def __init__(self, body, ctype): self.body, self.headers = body, {"Content-Type": ctype}
+    def read(self, n=-1): return self.body[:n] if n >= 0 else self.body
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+class FileClient(Client):
+    token = "xoxb-test-token"
+    def files_info(self, file): self.calls.append(("files_info", file)); return {"file": {"url_private": "https://files.example/" + file}}
+seen_req = []
+with mock.patch("urllib.request.urlopen", lambda req, timeout: seen_req.append(req) or Resp(b"\xff\xd8jpeg", "image/jpeg")):
+    fc = FileClient(); data = s.download({"id": "F9"}, fc)
+T(data == b"\xff\xd8jpeg" and fc.calls == [("files_info", "F9")] and seen_req[0].get_header("Authorization") == "Bearer xoxb-test-token", "download: 주소가 없으면 files.info · 봇 토큰으로 받기")
+with mock.patch("urllib.request.urlopen", lambda req, timeout: Resp(b"<html>login</html>", "text/html; charset=utf-8")):
+    try: s.download(IMG["files"][0], FileClient()); T(False, "권한 없음(HTML) → files:read 안내")
+    except RuntimeError as e: T("files:read" in str(e), "권한 없음(HTML) → files:read 안내")
+
 from slack_bolt import App
 from unittest import mock
 with mock.patch.object(App, "__init__", lambda self, **kw: None), mock.patch.object(App, "event", lambda self, name: (lambda f: handlers.__setitem__(name, f) or f)):
@@ -149,9 +233,10 @@ with mock.patch.object(s, "answer", lambda e, c: seen.append(e)):
     handlers["message"]({"channel_type": "im", "text": "a"}, None)
     handlers["message"]({"channel_type": "im", "text": "b", "bot_id": "B1"}, None)
     handlers["message"]({"channel_type": "im", "text": "c", "subtype": "message_changed"}, None)
+    handlers["message"]({"channel_type": "im", "text": "f", "subtype": "file_share"}, None)
     handlers["message"]({"channel_type": "channel", "text": "d"}, None)
     handlers["app_mention"]({"text": "e"}, None)
-T([e["text"] for e in seen] == ["a", "e"], "DM: 봇 메시지 · subtype · 채널 글 무시 / 멘션 연결")
+T([e["text"] for e in seen] == ["a", "f", "e"], "DM: 봇 메시지 · subtype · 채널 글 무시 (사진 file_share 는 받음) / 멘션 연결")
 for env, msg in (({"SLACK_BOT_TOKEN": "bad", "SLACK_APP_TOKEN": "xapp-1"}, "xoxb-"), ({"SLACK_BOT_TOKEN": "xoxb-1", "SLACK_APP_TOKEN": "bad"}, "xapp-")):
     with mock.patch.dict(os.environ, env):
         try: s.main(); T(False, "토큰 접두어 검사")
@@ -176,6 +261,22 @@ T(len(js["grid"]) == 8 and len(js["grid"][4]["runs"]) == 2 and len(js["rewrites"
 am = sorted(ev.RESULT_DIR.glob("*answer.md"))[0].read_text(encoding="utf-8")
 print("\n".join("      " + l for l in am.splitlines()[:26]))
 T(ev.grade_answer("종량제 봉투로 배출합니다. 자료에서 찾지 못했습니다.", ["종량제"], []) == "contradict" and ev.grade_answer("자료에서 찾지 못했습니다", ["찾지 못했"], []) == "ok" and ev.grade_answer("종이류로 배출 종량제", ["종량제"], ["종이류로 배출"]) == "wrong", "채점: 자기모순 · 범위밖 · bad")
+raw_dir, ph_dir = Path(TMP) / "photos_raw", Path(TMP) / "photos"; raw_dir.mkdir()
+ex = Image.Exif(); ex[0x010F] = "FakeMakerGPS"; ex[0x0112] = 6
+(raw_dir / "C2.jpg").write_bytes(img_bytes((3000, 2000), "JPEG", "RGB", ex))
+(raw_dir / "out_food.png").write_bytes(img_bytes((800, 600)))
+(raw_dir / "zz.jpg").write_bytes(img_bytes((100, 100), "JPEG", "RGB")); (raw_dir / "note.txt").write_text("x")
+buf = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+with contextlib.redirect_stdout(buf):
+    sys.argv = ["evaluate.py", "prep-photos", "--src", str(raw_dir), "--dir", str(ph_dir)]; ev.main()
+    sys.argv = ["evaluate.py", "photo", "--dir", str(ph_dir)]; ev.main()
+prepped = sorted(p.name for p in ph_dir.iterdir())
+with Image.open(ph_dir / "c2.jpg") as im: c2_size, c2_exif = im.size, len(im.getexif())
+T(prepped == ["c2.jpg", "out_food.jpg"] and c2_size == (ev.PREP_SIDE * 2 // 3, ev.PREP_SIDE) and c2_exif == 0, f"prep-photos: 모르는 이름 건너뜀 · 회전 · {c2_size} · EXIF {c2_exif}개")
+pm = next(ev.RESULT_DIR.glob("*photo.md")).read_text(encoding="utf-8")
+pj = json.loads(next(ev.RESULT_DIR.glob("*photo.json")).read_text(encoding="utf-8"))
+T("사진 적중" in pm and pj["inside"] == 1 and pj["outside"] == 1 and pj["top3"] in (0, 1) and len(pj["rows"]) == 2, f"evaluate photo: 결과 파일 · 범위 안 {pj['inside']} · 밖 {pj['outside']}")
+print("\n".join("      " + l for l in pm.splitlines()[:24]))
 import shutil; shutil.rmtree(TMP, ignore_errors=True)
 print("\nALL OK" if ok else "\nSOME FAILED")
 sys.exit(0 if ok else 1)

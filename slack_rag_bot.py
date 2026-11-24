@@ -4,6 +4,8 @@
     @버릴지도 검색 뽁뽁이                        → 검색만 — 어떤 근거가 뽑혔나
     @버릴지도 비교 마트 영수증 종이로 버려도 돼?    → RAG 없이 vs RAG 로 — 나란히 본다
     (DM) 핫팩은?                                → 멘션 없이 1:1 로도 같은 방식
+    @버릴지도 + 사진 (DM 은 사진만)               → 📷 사진에 품목 이름을 붙이고 → 그 이름으로 문서에서 찾아 답
+                                                  (슬랙 앱 봇 토큰에 files:read 권한이 있어야 사진을 받는다)
 
   전체 흐름 — 10주차 봇에서 두뇌(rag_backend)만 갈아 끼웠다
 
@@ -34,12 +36,15 @@
 """
 
 import config  # noqa: F401  ★ 맨 위 — load_dotenv + LangSmith 프로젝트 지정
-from config import EMBED_MODEL, INDEX_DIR, MAX_QUESTION, MODEL, NOT_FOUND, STRATEGY, YEAR_BONUS  # noqa: E402
+from config import (  # noqa: E402
+    EMBED_MODEL, INDEX_DIR, MAX_QUESTION, MODEL, NOT_FOUND, PHOTO_MAX_BYTES, STRATEGY, VISION_MODEL, YEAR_BONUS,
+)
 
 import os  # noqa: E402
 import re  # noqa: E402
 import sys  # noqa: E402
 import traceback  # noqa: E402
+import urllib.request  # noqa: E402
 
 from slack_bolt import App  # noqa: E402
 from slack_bolt.adapter.socket_mode import SocketModeHandler  # noqa: E402
@@ -47,21 +52,27 @@ from slack_sdk.errors import SlackApiError  # noqa: E402
 
 # ★ 두뇌 — 봇(입구 · 출구)과 RAG 가 나뉘어 있어서 이 줄만 바꾸면 다른 두뇌가 된다
 from rag_backend import (  # noqa: E402
-    ask, ask_plain, is_not_found, mixed_years, read_manifest, search, source_of, warmup,
+    PhotoError, ask, ask_photo, ask_plain, is_not_found, mixed_years, other_names, read_manifest, search,
+    source_of, warmup,
 )
 
 SEARCH_WORDS = ("검색", "search")
 COMPARE_WORDS = ("비교", "vs")
 MODEL_SHORT = config.short_model()
+PHOTO_MODELS = MODEL_SHORT if VISION_MODEL == MODEL else f"{config.short_model(VISION_MODEL)} → {MODEL_SHORT}"
 
 USAGE = (
     "분리배출 방법을 물어봐 주세요 ♻️\n"
     "• `@버릴지도 아이스팩 어떻게 버려?` — 문서에서 찾아 답하고 📚 근거를 붙입니다\n"
     "• `@버릴지도 검색 뽁뽁이` — 어떤 근거가 뽑혔는지만 보여 줍니다\n"
     "• `@버릴지도 비교 마트 영수증 종이로 버려도 돼?` — 문서 없이 답한 것과 나란히\n"
-    "• DM 으로는 멘션 없이 `핫팩은?` 처럼 바로 물어도 됩니다"
+    "• 📷 이름을 모르면 사진을 올리며 `@버릴지도` — 사진 속 물건 이름으로 문서에서 찾아 답합니다\n"
+    "• DM 으로는 멘션 없이 `핫팩은?` 처럼 바로 묻거나 사진만 보내도 됩니다"
 )
 HOLDER = "⏳ 분리배출 문서에서 찾는 중…"
+PHOTO_HOLDER = "📷 사진을 보고 문서에서 찾는 중…"
+PHOTO_UNKNOWN = ("📷 사진에서 버릴 물건을 알아보지 못했어요 — 물건 이름으로 물어봐 주세요. "
+                 "(예: `@버릴지도 아이스팩 어떻게 버려?`)")
 NOT_FOUND_TEXT = (f"{NOT_FOUND} — 지역별 배출 요일 · 수수료처럼 지자체마다 다른 내용은 "
                   "거주지 구청(주민센터)에 확인하세요.")
 MIXED_NOTE = ("ℹ️ 2018 가이드라인과 2026 사례집이 함께 근거로 쓰였습니다 — "
@@ -127,16 +138,86 @@ def log_fail(where: str, e: Exception) -> None:
     traceback.print_exc()
 
 
+# ── 1-2. 사진 ─────────────────────────────────────────────────────
+def first_image(event: dict) -> dict | None:
+    """메시지에 붙은 파일 중 첫 사진 하나 (여러 장이면 첫 장만 본다)."""
+    return next((f for f in event.get("files") or [] if str(f.get("mimetype", "")).startswith("image/")), None)
+
+
+def download(file: dict, client) -> bytes:
+    """슬랙 사진을 봇 토큰으로 받는다 — 봇 토큰에 files:read 권한이 있어야 한다. 새 패키지 없이 표준 라이브러리로."""
+    url = file.get("url_private_download") or file.get("url_private")
+    if not url and file.get("id"):          # 이벤트에 주소가 안 실려 올 때가 있다 (file_access: check_file_info)
+        file = client.files_info(file=file["id"])["file"]
+        url = file.get("url_private_download") or file.get("url_private")
+    if not url:
+        raise RuntimeError("사진 주소(url_private)가 이벤트에 없습니다")
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {client.token}"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        ctype = r.headers.get("Content-Type", "")
+        data = r.read(PHOTO_MAX_BYTES + 1)
+    if ctype.startswith("text/html"):       # 권한이 없으면 사진 대신 슬랙 로그인 화면(HTML)이 온다
+        raise RuntimeError("사진 대신 HTML 이 왔습니다 — 봇 토큰 scope 에 files:read 가 있는지, Reinstall 했는지 확인")
+    if len(data) > PHOTO_MAX_BYTES:
+        raise PhotoError(f"사진은 {PHOTO_MAX_BYTES // 2**20}MB 이하로 부탁드립니다")
+    return data
+
+
+def photo_text(out: dict) -> str:
+    """📷 무엇으로 봤는지 → 답 + 📚 근거 + 다른 후보 / 애매하면 후보만 / 못 알아보면 이름으로 물어 달라고."""
+    tail_ = f"_— photo · {PHOTO_MODELS} · {out['sec']:.1f}초_"
+    if out["decision"] == "unknown":
+        return f"{PHOTO_UNKNOWN}\n{tail_}"
+    label = escape(out["label"])
+    names = [escape(n) for n in other_names(out["docs"])]
+    if out["decision"] == "ask":
+        choices = "\n".join(f"{i}) {n}" for i, n in enumerate(names, 1))
+        return (f"📷 사진에서 «{label}» 으로 봤는데, 문서의 어느 품목인지 확신이 없어요. 이 중 무엇인가요?\n{choices}\n"
+                f"→ 물건 이름으로 다시 물어 주세요\n{tail_}")
+    seen = f"📷 사진에서 *«{label}»* 으로 봤어요 — 틀리면 이름으로 다시 물어 주세요"
+    if is_not_found(out["answer"]):
+        return f"{seen}\n{NOT_FOUND_TEXT}\n{tail_}"
+    note = f"\n{MIXED_NOTE}" if mixed_years(out["docs"]) else ""
+    others = f"\n🔁 다른 후보: {' · '.join(names[1:])}" if len(names) > 1 else ""
+    return f"{seen}\n\n{to_mrkdwn(out['answer'])}\n\n{sources_block(out['docs'])}{note}{others}\n{tail_}"
+
+
 # ── 2. 답하기 — 자리부터 잡고, 답이 오면 고친다 ───────────────────
 def answer(event: dict, client) -> None:
     channel = event["channel"]
     thread = event.get("thread_ts") or event["ts"]          # ★ 같은 스레드에 — 스레드 안이면 그 스레드, 아니면 그 메시지 아래
     user = event.get("user", "")
     mode, question = parse(event.get("text", ""))
-    print(f"받음 ← user={user} {mode} {question!r}")
+    image = first_image(event)
+    print(f"받음 ← user={user} {'photo' if image else mode} {question!r}")
 
     def post(text: str):
         return client.chat_postMessage(channel=channel, thread_ts=thread, text=text)
+
+    meta = {"slack_user": user, "slack_channel": channel, "source": "slack"}
+
+    # ── 사진 — 같이 쓴 글은 힌트로 (검색 · 비교 모드는 글 질문에서만) ──
+    if image:
+        hint = re.sub(r"<@[A-Z0-9]+>\s*", "", event.get("text") or "").strip()
+        if len(hint) > MAX_QUESTION:
+            post(f"✋ 사진과 같이 쓰는 글은 {MAX_QUESTION}자 이내로 부탁드립니다. (지금 {len(hint)}자)")
+            return
+        if (image.get("size") or 0) > PHOTO_MAX_BYTES:
+            post(f"✋ 사진은 {PHOTO_MAX_BYTES // 2**20}MB 이하로 부탁드립니다.")
+            return
+        holder = post(PHOTO_HOLDER)
+        try:
+            out = ask_photo(download(image, client), hint, meta)
+            text = photo_text(out)
+            print(f"  답함 → {out['sec']:.1f}초  이름 «{out['label']}» · {out['decision']} · "
+                  f"근거 chunk_id={[d.metadata.get('chunk_id') for d in out['docs']]}")
+        except PhotoError as e:
+            text = f"✋ {e}"
+        except Exception as e:
+            log_fail("photo", e)
+            text = FAIL_TEXT
+        client.chat_update(channel=channel, ts=holder["ts"], text=text)
+        return
 
     if not question:
         post(USAGE)
@@ -144,8 +225,6 @@ def answer(event: dict, client) -> None:
     if len(question) > MAX_QUESTION:
         post(f"✋ 질문은 {MAX_QUESTION}자 이내로 부탁드립니다. (지금 {len(question)}자)")
         return
-
-    meta = {"slack_user": user, "slack_channel": channel, "source": "slack"}
 
     # ── 검색만 ──
     if mode == "search":
@@ -191,7 +270,9 @@ def build_app(bot_token: str) -> App:
     def on_dm(event, client):
         # 봇에게 1:1 DM 으로 물을 때 — message.im 이벤트를 구독해야 온다
         # subtype(수정 · 삭제 알림)과 봇이 쓴 메시지는 무시한다 — 자기 답에 다시 답하지 않게
-        if event.get("channel_type") == "im" and not event.get("subtype") and not event.get("bot_id"):
+        # 단 file_share(사진을 올린 메시지)는 받는다 — 📷 사진으로 묻기
+        if (event.get("channel_type") == "im" and event.get("subtype") in (None, "file_share")
+                and not event.get("bot_id")):
             answer(event, client)
 
     return app
@@ -212,6 +293,7 @@ def main() -> None:
     print(f"인덱스    : {INDEX_DIR}  ({manifest.get('chunks', '?')}청크 · {manifest.get('mode', '?')})")
     print(f"임베딩    : {EMBED_MODEL}")
     print(f"생성 모델 : {MODEL}")
+    print(f"사진 모델 : {VISION_MODEL}" + ("  (생성 모델과 같음)" if VISION_MODEL == MODEL else "  (두 모델)"))
     print(f"검색      : {STRATEGY} · year_bonus {YEAR_BONUS}")
     print(f"LangSmith : {os.environ['LANGSMITH_PROJECT']}  (추적 {'켜짐 ✅' if tracing else '꺼짐'})")
     if not tracing:
@@ -232,7 +314,7 @@ def main() -> None:
     print(f"워밍업 ✅ {sec:.1f}초")
 
     app = build_app(bot_token)
-    print("슬랙에서 @버릴지도 질문 / 검색 질문 / 비교 질문.  끝낼 때는 Ctrl+C")
+    print("슬랙에서 @버릴지도 질문 / 검색 질문 / 비교 질문 / 📷 사진.  끝낼 때는 Ctrl+C")
     print("=" * 60)
     try:
         SocketModeHandler(app, app_token).start()

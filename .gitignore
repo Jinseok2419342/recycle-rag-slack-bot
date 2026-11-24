@@ -16,3 +16,7 @@ data/분리배출_QA사례100_2026.pdf
 
 # build_index.py 가 만드는 인덱스 (index_recycle/ · index_recursive/ …) — PC 마다 다시 만듦
 /index*/
+
+# 사진 평가 원본 (휴대폰 원본 · EXIF 에 촬영 위치가 있을 수 있음) — 커밋하는 것은
+#   python evaluate.py prep-photos 로 줄이고 EXIF 를 지운 photos/ 쪽
+/photos_raw/
