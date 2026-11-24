@@ -63,6 +63,11 @@ VISION_MODEL = os.getenv("RECYCLE_VISION_MODEL") or MODEL   # 비우면 생성 �
 PHOTO_SIDE = int(os.getenv("RECYCLE_PHOTO_SIDE", "768"))    # 긴 변을 이 픽셀까지 줄여 넣는다 (VRAM · 시간)
 PHOTO_MAX_BYTES = 15 * 1024 * 1024                          # 슬랙에서 받을 사진 원본 상한
 LABEL_MAX_OUT = 40                                          # 이름 붙이기는 짧게 — 토큰 상한
+# 이름 붙이는 방식 — free: 모델이 이름을 지어냄 · pick: 문서의 품목 이름 목록(377개)에서 고름 (2026-11-24 비교 → 실측으로 채택)
+PHOTO_MODES = ("free", "pick")
+PHOTO_MODE = os.getenv("RECYCLE_PHOTO_MODE", "free")
+if PHOTO_MODE not in PHOTO_MODES:
+    raise SystemExit(f"RECYCLE_PHOTO_MODE 는 {' | '.join(PHOTO_MODES)} 중 하나여야 합니다 (지금: {PHOTO_MODE!r})")
 UNKNOWN_LABEL = "모름"                                       # 비전 모델이 «물건이 아니다 · 모르겠다» 일 때
 # 확신 기준 — 1위 거리가 PHOTO_MAX_DIST 보다 멀거나, 다른 품목 후보와의 거리 차가 PHOTO_MIN_GAP 보다 작으면 «되묻기».
 #   0 = 쓰지 않음 (항상 답 + 다른 후보 표시). 값은 사진 실측으로 정한다 (evaluate.py photo 의 거리 표).

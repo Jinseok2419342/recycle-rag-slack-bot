@@ -117,10 +117,20 @@ try: rb.prepare_image(b"not an image"); T(False, "읽을 수 없는 사진 → P
 except rb.PhotoError: T(True, "읽을 수 없는 사진 → PhotoError")
 T([rb.parse_label(x) for x in ("품목: 아이스팩.", "1. 선글라스\n설명", "<think>음…</think>\n«핫팩»", "잘 모름", "", "알 수 없음")]
   == ["아이스팩", "선글라스", "핫팩", "모름", "모름", "모름"], "parse_label: 접두어 · 번호 · 생각 글 · 모름")
+T([rb.parse_label(x, last=True) for x in ("첫 줄: 파란 젤이 든 비닐 팩\n둘째 줄: 아이스팩", "풍경 사진\n모름", "완충재(뽁뽁이)",
+                                          "흰 롤러\n<품목> 목록에 해당되는 이름이 없습니다.")]
+  == ["아이스팩", "모름", "완충재(뽁뽁이)", "모름"], "parse_label(pick): 설명 줄 다음의 마지막 줄이 이름 · «해당 이름 없음» = 모름")
+T([rb.snap_to_item(x) for x in ("<품목> 목록에서 해당되는 이름은 '안경·선글라스'입니다", "<품목> 목록에서 가장 적합한 것은 **약 종류**입니",
+                                 "목록에서 고르면 칫솔살균기 입니다", "무색페트병", "아이스팩", "모름", "처음 보는 물건")]
+  == ["안경·선글라스", "약 종류", "칫솔살균기", "무색페트병", "아이스팩", "모름", "처음 보는 물건"], "snap_to_item: 따옴표 · 굵은 글씨 · 문장 속 품목 이름 / 한 낱말은 그대로")
+names = rb.item_names()
+T(len(names) == 377 and "아이스팩" in names and "완충재(뽁뽁이)" in names, f"item_names: 문서 품목 이름 {len(names)}개")
+pick_txt, free_txt = (rb.photo_messages(b"x", "", m)[0].content[0]["text"] for m in ("pick", "free"))
+T("<품목>" in pick_txt and "완충재(뽁뽁이), " in pick_txt and "<품목>" not in free_txt, "pick: 지시문에 문서 품목 목록 · free 에는 없음")
 with collect_runs() as cb: po = rb.ask_photo(img_bytes(), "", {"slack_user": "U1"})
 root = cb.traced_runs[0]; kids = [c.name for c in root.child_runs]
 T(len(cb.traced_runs) == 1 and root.name == "recycle-photo" and kids == ["describe-photo", "RecycleRetriever", "generate"], f"사진 trace 1건: {root.name} → {kids}")
-T(po["label"] == "아이스팩" and po["decision"] == "answer" and po["query"] == "아이스팩" and po["answer"] and len(po["docs"]) == 3, f"사진 → «{po['label']}» → 검색 → 답 ({po['decision']} · 1위 거리 {po['dist']})")
+T(po["label"] == "아이스팩" and po["decision"] == "answer" and po["query"] == "아이스팩" and po["answer"] and len(po["docs"]) == 3 and po["in_list"] and po["mode"] == config.PHOTO_MODE, f"사진 → «{po['label']}» → 검색 → 답 ({po['decision']} · 1위 거리 {po['dist']})")
 T({"recycle-bot", "photo"} <= set(root.tags) and root.extra["metadata"]["vision_model"] == config.VISION_MODEL and "x" in root.extra["metadata"]["photo"] and root.extra["metadata"]["slack_user"] == "U1", "사진 tags · metadata (vision_model · 크기)")
 def _all_runs(r): yield r; yield from (x for c in r.child_runs for x in _all_runs(c))
 b64 = __import__("base64").b64encode(rb.prepare_image(img_bytes())[0]).decode()[:40]
