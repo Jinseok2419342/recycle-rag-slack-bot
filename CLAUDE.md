@@ -23,12 +23,41 @@
   - 결과 전체 · 계획과 달라진 점: [docs/photo-feature-plan.md](docs/photo-feature-plan.md) 맨 위 «결과» · CONTEXT 부록 C · E · G
   - **문서 방침**: README · CONTEXT · docs 를 새 모델 기준으로 다시 씀 (A.X 는 언급하지 않음 · 비교군 `gemma3:4b`) — 2026-11-24 완료.
     사진은 **AI 생성 이미지** · 지시문을 **같은 사진으로 고침**(v1 → v2) · 새 사진 세트로 다시 재지 않음 → README 6번 · 부록 G 에 밝힘
+- **▶ 세션 시작 순서** — 사용자가 «CLAUDE.md 보고 시작하자» 라고 하면
+  1. `git status` · `git log --oneline -3` — 브랜치 `photo-feature` 인지, 끝 커밋이 이 파일을 고친 커밋인지 확인.
+     `git status -sb` 의 `[ahead N]` 이 남아 있으면 사용자가 GitHub Desktop 에서 Push origin 을 아직 안 누른 것 → 부탁
+  2. `captures_raw/` 에 png 가 있는지 확인 — 있으면 아래 «다음에 할 일» 1번의 확인 단계로, 없으면 3번
+  3. 봇을 백그라운드로 켜고(PowerShell · `run_in_background`) Monitor 로 «워밍업|Bolt app is running|받음|답함|실패|Traceback» 줄을 지켜봄:
+     `$env:PYTHONUTF8=1; [Console]::OutputEncoding=[Text.Encoding]::UTF8; $env:Path += ";$env:LOCALAPPDATA\Programs\OllamaAIClass"; .\venv\Scripts\python.exe -u slack_rag_bot.py 2>&1`
+     (그 전에 `ollama ps` 로 GPU 비우기 · 함정 25). «워밍업 ✅» · «Bolt app is running!» 이 나오면 사용자에게 아래 캡처 안내를 **한 단계씩** 드림
+  4. 오늘 할 일이 끝나면 봇을 TaskStop 으로 끔
+- **캡처 안내 (사용자에게 줄 것 · 2026-11-24 에 한 번 드렸고 아직 못 받음)** — 저장 위치 `C:\Users\USER\Documents\GitHub\recycle-rag-slack-bot\captures_raw\` · 파일 이름 그대로
+  - 슬랙 (봇 이름 `@Jinseok-20241499-Bot` · 함정 18) — 각 질문 뒤 스레드를 열어 답까지 보이게 캡처
+    - `slack-thread.png`: `@Jinseok-20241499-Bot 아이스팩 어떻게 버려?` (같은 스레드에 `검색 선글라스` · 빈 멘션 · `강남구 재활용 요일?` 을 이어서 물으면 한 장에 여러 기능)
+    - `slack-compare.png`: `@Jinseok-20241499-Bot 비교 마트 영수증은 종이로 버려도 돼?` → README 4번 캡션의 «RAG 없이» 인용을 실제 화면 문장으로 바꿀 것
+    - `slack-photo.png`: 물건 사진(예: `photos/c2.jpg` 아이스팩) + `이거 어떻게 버려?` 를 함께 보냄 → 📷 줄 · 답 · 📚 · 🔁 다른 후보가 보이게
+  - LangSmith — 프로젝트 `recycle-bot-20241499` · **metadata 탭(slack 사용자 · 채널 ID)은 찍지 않음**
+    - `trace-rag.png`: `recycle-rag` trace 를 열어 왼쪽 트리(`RecycleRetriever` · `generate`)가 보이게
+    - `trace-retriever.png`: 그 트리에서 `RecycleRetriever` 를 눌러 검색된 문서 3개 · 거리가 보이게
+    - `trace-photo.png`: `recycle-photo` → `describe-photo` 를 눌러 입력에 «<image … bytes — 추적에 올리지 않음>» 이 보이게
+  - 다 넣으면 사용자가 «캡처 다 넣었어» 라고 함
 - **▶ 다음에 할 일** (이 순서로)
   1. **캡처 6장** — 사용자가 `captures_raw/`(gitignore)에 넣음: `slack-thread` · `slack-compare` · `slack-photo` · `trace-rag` · `trace-retriever` · `trace-photo` (.png).
      README 2 · 4번이 이 이름을 이미 가리킴 → 받으면 눈으로 확인(슬랙 ID · 개인정보가 없는지) → `docs/` 로 복사 → README 캡션을 실제 화면 내용에 맞춤
      (`trace-build.png` 는 모델과 무관해 그대로). 캡처 때 봇 콘솔의 «받음/답함» 줄로 CONTEXT **부록 F(슬랙 왕복)** 를 2026-11-24 값으로 다시 씀 — 지금은 11-17(옛 모델) 표가 남아 있음
-  2. 검사: `build_index.py --check` · `tests/offline_check.py`(71항목) · 문서 링크 · README 의 이미지 6개 존재 → 커밋 → **`main` 반영** (`git push origin HEAD:main` — 이 PC 는 CLI push 가 막혀 있어 **GitHub Desktop 의 Push** 로. 아래 함정 28)
+  2. 검사: `build_index.py --check` · `tests/offline_check.py`(71항목) · 문서 링크 · README 의 이미지 6개 존재 → 커밋 → **`main` 반영**.
+     이 PC 는 CLI push 가 막혀 있음(함정 28) → 로컬에서 `git branch -f main photo-feature`(fast-forward 인지 `git merge-base --is-ancestor main photo-feature` 로 먼저 확인)
+     → 사용자에게 «GitHub Desktop 에서 Current branch 를 `photo-feature` 로 두고 Push origin → `main` 으로 바꾸고 Push origin → 다시 `photo-feature` 로» 를 부탁
   3. (선택) 시나리오 8(Ollama 끄기) · 새 사진 세트로 사진 다시 재기 · 범위 밖 사진 개선
+  4. (선택) **검색 · 인덱스 점검** — 사용자가 2026-11-24 에 «KURE 나 인덱싱이 부족한 것 아니냐 · 찾을 것 같은 걸 못 찾고 뭘 더하면 찾는다» 고 물음. 그날 확인한 것:
+     - 텍스트 검색은 Top-3 23/24 — 넓게 부족하진 않음. 놓친 1건이 **y2 생수병**: `검색 "생수병"` 의 1 ~ 3위가 위스키병 · 유리병 · 페트병, 정답(사례집 p.13 «무색 플라스틱 물병» · 본문은 «먹는 샘물»)은 3위 밖.
+       문서에 «생수» 라는 낱말이 없어 임베딩이 «병» 에 끌림 = **질문 말 ↔ 문서 말이 다른 문제**(동의어). 사진은 비전 모델이 문서 목록의 «무색페트병» 을 골라 넣어 주니 찾음 — «더하면 찾는» 이유
+     - 사진 16/20 에서 놓친 4장은 인덱스가 아니라 **이름 붙이기** 실수(c3 모름 · c5 신문지 · y1 유리병 — 정답 품목은 목록에 있음) + s7(답은 맞음 · 채점 위치 차이)
+     - **인덱스 쪽 실제 흠**: 품목사전 `item` 이름 중 문장 조각이 붙은 것 6개 — «우산 뼈대와 비닐을» · «약 종류 약국, 보건소 등의» · «비디오테이프 내부 필름은» ·
+       «젖병 (아기용품) 젖병의 몸체와 윗부분의 젖꼭지는» · «(우유팩 등) 내부에 알루미늄박이 붙어 있다면» · «체온계(건전지, 디지털) 건전지는» (`split_item_dict` 의 줄 나누기 · 사진 pick 목록 377개에도 그대로 들어감)
+     - 해 볼 만한 것(한 번에 하나씩 · `evaluate.py retrieval` · `photo` 로 재기): ① 위 6개 이름 고치기(`--check` 기준이 바뀌므로 수치 확인) ② 동의어에 약한 문항을 평가 세트에 더 넣어 진짜 약점 크기부터 재기
+       (지금 24문항은 품목 이름을 그대로 쓴 질문이 많아 약점이 덜 보임) ③ 재정렬 모델(reranker) — VRAM 여유가 0.3GB 뿐이라 CPU 로 ④ 다른 임베딩(bge-m3 등)과 비교.
+       동의어를 청크에 직접 넣는 방식은 평가 문항에 맞춘 꼼수가 되기 쉬우니 피할 것 (함정 9 와 같은 이유)
 
 - **저장소 두 곳** (2026-11-20)
   - **이 저장소 `recycle-rag-slack-bot` 이 원본이자 제출본** — 앞으로의 수정은 여기에만 · 14주차(12/4) 최종 제출도 이 저장소로 (2026-11-20 사용자 결정)
@@ -41,7 +70,7 @@
   README 끝의 «필수 요건 대조» 표 · «제출 체크리스트» 가 이것과 맞춰져 있습니다(2026-11-19 전부 ✅ 확인).
   모델 성능을 더 깊게 재검증하거나, 메인 PC(한글 경로)에서 다시 세팅할 필요는 **없다** 고 사용자가 결정함 — 같은 사양의 보조 PC 에서 처음부터 세팅해 통과했음.
 - **남은 것**: 위 «▶ 다음에 할 일». 시나리오 8(Ollama 를 끈 상태의 오류 처리)은 SPEC 6-5 에 스스로 적어 둔 점검 항목일 뿐 **수업 요건이 아님** — 사용자가 원할 때만.
-- **이 PC (2026-11-24 세션)** — Windows 11 · RTX 3070 8GB · 경로 `C:\Users\USER\Documents\GitHub\recycle-rag-slack-bot` (영문) · Ollama 0.32.14 가 PATH 밖(함정 19와 같은 위치).
+- **이 PC (2026-11-24 세션 · 다른 PC 에서 열렸으면 `venv` · 모델 3개 · 사례집 · `.env` 부터 — README 5번 · 아래 «실행 순서» 0번)** — Windows 11 · RTX 3070 8GB · 경로 `C:\Users\USER\Documents\GitHub\recycle-rag-slack-bot` (영문) · Ollama 0.32.14 가 PATH 밖(함정 19와 같은 위치).
   11-17 의 보조 PC 와 다른 PC 일 수 있음(모델이 하나도 없었음 — `gemma3:4b` · `exaone3.5:2.4b` 만). 이번에 venv · 사례집 · 모델 4개(`gemma4:e4b` · `qwen3.5:4b` · `qwen3.5:0.8b` · KURE)를 새로 준비함.
   `.env` 는 사용자가 새로 만듦 · 슬랙 봇 토큰 scope: `chat:write` · `chat:write.public` · `app_mentions:read` · `im:read` · `im:history` · `files:read` (auth.test 로 확인)
 - **사용자와 일하는 방식**
@@ -61,7 +90,7 @@
   설치 스크립트(맨 위에 `venv` 만들고 `requirements.txt` 설치). 이 환경으로 시작한 세션에서는 사례집을 받아
   `./venv/bin/python build_index.py --check` · `tests/offline_check.py` · `questions.py` 까지 돌릴 수 있음 (모델 · 슬랙은 여전히 안 됨).
   설치 스크립트는 같은 명령을 손으로 돌려 확인했지만, 새 세션에서 자동으로 도는 것은 아직 못 봄 →
-  다음 세션도 이 환경이면 좋지만(세션 제목줄의 클라우드 환경 메뉴), **사용자가 따로 고를 필요는 없음** — 기본 환경으로 열리면 «다음 세션 시작 순서» 1번에서 옮기자고 제안.
+  다음 세션도 이 환경이면 좋지만(세션 제목줄의 클라우드 환경 메뉴), **사용자가 따로 고를 필요는 없음** — 기본 환경으로 열리면 «세션 시작 순서» 1번에서 옮기자고 제안.
   자동 설치가 됐는지는 그 1번에서 확인해 이 줄에 적을 것
 - **이미지를 받을 때** — 채팅에 붙인 이미지는 폭 2000px JPG 로 줄어듦 → 문서에 넣을 원본은 **ZIP 으로** 받기 (scratchpad 의 새 폴더에 풀고 `__MACOSX` 는 버림)
 - **2026-11-19 에 한 일** — CLAUDE.md 깨진 곳 복구 · 미결 2 · 3 · 8 반영 · LangSmith 3장 + 슬랙 2장 캡처(`docs/*.png` · README 2 · 4번) ·
