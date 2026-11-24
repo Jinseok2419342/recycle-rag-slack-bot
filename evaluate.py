@@ -43,7 +43,9 @@ import sys
 
 # ★ config 를 import 하기 **전에** — 인덱스 · 모델 · 프롬프트는 «실행 한 번 = 설정 하나» 라서 환경 변수로 넘긴다
 for _flag, _key in (("--index", "RECYCLE_INDEX"), ("--model", "RECYCLE_MODEL"), ("--prompt", "RECYCLE_PROMPT"),
-                    ("--vision-model", "RECYCLE_VISION_MODEL"), ("--photo-mode", "RECYCLE_PHOTO_MODE")):
+                    ("--vision-model", "RECYCLE_VISION_MODEL"), ("--photo-mode", "RECYCLE_PHOTO_MODE"),
+                    ("--photo-reasoning", "RECYCLE_PHOTO_REASONING"), ("--photo-query", "RECYCLE_PHOTO_QUERY"),
+                    ("--photo-side", "RECYCLE_PHOTO_SIDE")):
     for _i, _arg in enumerate(sys.argv):
         if _arg == _flag and _i + 1 < len(sys.argv):
             os.environ[_key] = sys.argv[_i + 1]
@@ -362,7 +364,8 @@ def run_photo(args) -> None:
             err = f"{type(e).__name__}: {e}"
         docs, ans = out["docs"], out["answer"].strip()
         row = {"photo": p.name, "id": q[0] if q else None, "what": q[2] if q else "범위 밖", "label": out["label"],
-               "raw_label": out["raw_label"], "in_list": out.get("in_list"), "decision": out["decision"], "dist": out["dist"], "gap": out["gap"],
+               "raw_label": out["raw_label"], "desc": out.get("desc", ""), "query": out.get("query", ""),
+               "in_list": out.get("in_list"), "decision": out["decision"], "dist": out["dist"], "gap": out["gap"],
                "sources": [rb.source_of(d) for d in docs], "answer": ans, "sec": out["sec"],
                "label_sec": out["label_sec"], "error": err}
         if q:
@@ -397,6 +400,8 @@ def run_photo(args) -> None:
                                       "이름 붙이기": f"{config.PHOTO_MODE} · 지시문 v{rb.PHOTO_PROMPT_VERSION} "
                                                      + ("(문서 품목 목록에서 고름 · 문장 속 품목 이름 맞추기)"
                                                         if config.PHOTO_MODE == "pick" else "(모델이 지어냄)"),
+                                      "사진 단계 생각 모드": {True: "on", False: "off", None: "auto"}[config.PHOTO_REASONING],
+                                      "검색어": config.PHOTO_QUERY,
                                       "사진 크기": f"긴 변 {config.PHOTO_SIDE}px",
                                       "확신 기준": f"거리 {config.PHOTO_MAX_DIST or '끔'} · 차 {config.PHOTO_MIN_GAP or '끔'}"})
     lines += [f"- 사진: {folder.as_posix()}/ — 범위 안 {len(inn)}장 · 범위 밖 {len(out_)}장"
@@ -438,7 +443,8 @@ def run_photo(args) -> None:
     print("\n" + "\n".join(lines[:lines.index("## 사진별")]))
     save("photo", lines, {"index": INDEX_DIR.name, "manifest": rb.read_manifest(), "model": MODEL,
                           "vision_model": VISION_MODEL, "photo_mode": config.PHOTO_MODE,
-                          "photo_prompt_version": rb.PHOTO_PROMPT_VERSION, "embed_model": EMBED_MODEL,
+                          "photo_prompt_version": rb.PHOTO_PROMPT_VERSION, "photo_reasoning": config.PHOTO_REASONING,
+                          "photo_query": config.PHOTO_QUERY, "embed_model": EMBED_MODEL,
                           "strategy": strategy,
                           "year_bonus": year_bonus, "prompt": PROMPT_VARIANT, "photo_side": config.PHOTO_SIDE,
                           "top3": top3, "need": need, "inside": len(inn), "outside_ok": out_ok,
@@ -453,6 +459,9 @@ def main() -> None:
     ap.add_argument("--model", help="생성 모델 (기본 config.MODEL)")
     ap.add_argument("--vision-model", help="photo: 사진 모델 (기본 = 생성 모델 — 한 모델)")
     ap.add_argument("--photo-mode", choices=config.PHOTO_MODES, help="photo: free(이름 지어내기) | pick(문서 품목 목록에서 고르기)")
+    ap.add_argument("--photo-reasoning", choices=tuple(config.REASONINGS), help="photo: 사진 단계의 생각 모드 (기본 = 답 단계와 같음)")
+    ap.add_argument("--photo-query", choices=config.PHOTO_QUERIES, help="photo: 검색어 — label | label+desc (pick 의 설명 줄도)")
+    ap.add_argument("--photo-side", type=int, help="photo: 사진 긴 변 px (기본 768)")
     ap.add_argument("--prompt", choices=tuple(rb.RAG_PROMPTS), help="RAG 프롬프트 (기본 base)")
     ap.add_argument("--strategy", choices=STRATEGIES, default=None, help="answer · photo 전용")
     ap.add_argument("--year-bonus", type=float, default=None, help="answer · photo 전용")

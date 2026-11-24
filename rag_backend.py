@@ -159,9 +159,11 @@ def get_llm() -> ChatOllama:
 def get_vision_llm() -> ChatOllama:
     """사진에 이름을 붙이는 모델. VISION_MODEL 이 생성 모델과 같으면 Ollama 가 같은 모델을 그대로 쓴다.
     ★ num_ctx 를 생성과 같게 둔다 — 다르면 Ollama 가 같은 모델을 문맥 길이만 바꿔 다시 올린다 (첫 답이 느려짐)."""
-    return ChatOllama(model=VISION_MODEL, temperature=0,
-                      num_predict=LABEL_MAX_OUT * (3 if config.PHOTO_MODE == "pick" else 1),   # pick 은 설명 한 줄이 더 붙음
-                      num_ctx=NUM_CTX, keep_alive=KEEP_ALIVE, reasoning=REASONING)
+    out = LABEL_MAX_OUT * (3 if config.PHOTO_MODE == "pick" else 1)          # pick 은 설명 한 줄이 더 붙음
+    if config.PHOTO_REASONING:
+        out += config.PHOTO_THINK_OUT                                        # 생각 글도 상한에 들어간다
+    return ChatOllama(model=VISION_MODEL, temperature=0, num_predict=out, num_ctx=NUM_CTX,
+                      keep_alive=KEEP_ALIVE, reasoning=config.PHOTO_REASONING)
 
 
 # ── 2. 검색 — 기본 · MultiQuery · year 최신 우선을 하나의 검색기로 ──
@@ -371,6 +373,14 @@ def parse_label(text: str, last: bool = False) -> str:
     return line[:30]
 
 
+def parse_desc(text: str) -> str:
+    """pick 방식의 첫 줄(설명). 줄이 하나뿐이면 빈 문자열."""
+    lines = [ln.strip() for ln in re.sub(r"<think>.*?</think>", "", text or "", flags=re.S).splitlines() if ln.strip()]
+    if len(lines) < 2:
+        return ""
+    return re.sub(r"^(?:첫\s*줄|설명)\s*[:：]\s*", "", lines[0])[:120]
+
+
 _QUOTED = re.compile(r"\*\*(.+?)\*\*|'([^']+)'|\"([^\"]+)\"|«([^»]+)»|‘([^’]+)’|“([^”]+)”")
 
 
@@ -474,12 +484,13 @@ def _photo(inputs: dict, config) -> dict:
     label = parse_label(raw, last=inputs["mode"] == "pick")
     if inputs["mode"] == "pick":
         label = snap_to_item(label)
-    out = {"label": label, "raw_label": raw.strip()[:100], "label_sec": round(time.perf_counter() - t, 2),
+    desc = parse_desc(raw) if inputs["mode"] == "pick" else ""
+    out = {"label": label, "desc": desc, "raw_label": raw.strip()[:100], "label_sec": round(time.perf_counter() - t, 2),
            "mode": inputs["mode"], "in_list": label in item_names(),
            "query": "", "question": "", "docs": [], "decision": "unknown", "answer": "", "dist": None, "gap": None}
     if label == UNKNOWN_LABEL:
         return out
-    query = f"{label} {hint}".strip()
+    query = " ".join(x for x in (label, desc if inputs.get("query_mode") == "label+desc" else "", hint) if x)
     retriever = RecycleRetriever(strategy=inputs["strategy"], year_bonus=inputs["year_bonus"])
     docs = retriever.invoke(query, config=config)                                                     # ②
     out.update(query=query, docs=docs, decision=decide(label, docs), **confidence(docs))             # ③
@@ -503,8 +514,8 @@ def ask_photo(image: bytes, hint: str = "", meta: dict | None = None, strategy: 
     start = time.perf_counter()
     with tracing_context(client=trace_client()):
         out = photo_run.invoke(
-            {"image": jpeg, "hint": hint, "mode": config.PHOTO_MODE, "strategy": strategy, "year_bonus": year_bonus,
-             "prompt": PROMPT_VARIANT},
+            {"image": jpeg, "hint": hint, "mode": config.PHOTO_MODE, "query_mode": config.PHOTO_QUERY,
+             "strategy": strategy, "year_bonus": year_bonus, "prompt": PROMPT_VARIANT},
             config={
                 "run_name": "recycle-photo",
                 "tags": [TAG, "photo", strategy, *(tags or [])],

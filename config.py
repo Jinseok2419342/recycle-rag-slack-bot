@@ -68,6 +68,17 @@ PHOTO_MODES = ("free", "pick")
 PHOTO_MODE = os.getenv("RECYCLE_PHOTO_MODE", "free")
 if PHOTO_MODE not in PHOTO_MODES:
     raise SystemExit(f"RECYCLE_PHOTO_MODE 는 {' | '.join(PHOTO_MODES)} 중 하나여야 합니다 (지금: {PHOTO_MODE!r})")
+# 사진 단계에서만 생각 모드를 따로 켤 수 있다 (답 단계는 REASONING 그대로) — 기본은 REASONING 과 같음
+_photo_reasoning = os.getenv("RECYCLE_PHOTO_REASONING", _reasoning)
+if _photo_reasoning not in REASONINGS:
+    raise SystemExit(f"RECYCLE_PHOTO_REASONING 은 {' | '.join(REASONINGS)} 중 하나여야 합니다 (지금: {_photo_reasoning!r})")
+PHOTO_REASONING = REASONINGS[_photo_reasoning]
+PHOTO_THINK_OUT = 1024          # 생각 모드를 켜면 생각 글도 토큰 상한에 들어간다 — 넉넉히
+# 검색어 — label: 붙인 이름만 · label+desc: pick 방식의 설명 줄도 함께 («투명한 비닐에 든 파란 젤 …»)
+PHOTO_QUERIES = ("label", "label+desc")
+PHOTO_QUERY = os.getenv("RECYCLE_PHOTO_QUERY", "label")
+if PHOTO_QUERY not in PHOTO_QUERIES:
+    raise SystemExit(f"RECYCLE_PHOTO_QUERY 는 {' | '.join(PHOTO_QUERIES)} 중 하나여야 합니다 (지금: {PHOTO_QUERY!r})")
 UNKNOWN_LABEL = "모름"                                       # 비전 모델이 «물건이 아니다 · 모르겠다» 일 때
 # 확신 기준 — 1위 거리가 PHOTO_MAX_DIST 보다 멀거나, 다른 품목 후보와의 거리 차가 PHOTO_MIN_GAP 보다 작으면 «되묻기».
 #   0 = 쓰지 않음 (항상 답 + 다른 후보 표시). 값은 사진 실측으로 정한다 (evaluate.py photo 의 거리 표).
