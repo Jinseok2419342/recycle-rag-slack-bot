@@ -11,36 +11,24 @@
 동양미래대 «최신인공지능» 수업(학번 20241499) 미니 프로젝트. **응답은 한국어로.**
 수업 저장소의 `mini_project/` 를 2026-11-20 에 커밋 기록째 옮겨 온 **독립 저장소**입니다(아래 «저장소 두 곳»).
 
-## ▶ 다음 세션은 여기부터 (2026-11-20 기준)
+## ▶ 다음 세션은 여기부터 (2026-11-24 기준)
 
-**상태: 필수 요건은 완료 · 다음 작업은 «사진으로 묻기» (설계까지 끝 · 코드 미반영 → 다음 세션에 구현 → 측정).**
-수업 PDF 의 필수 요건과 14주차 제출물(코드 + README + LangSmith 추적 캡처)은 모두 `main` 에 있습니다.
+**상태: «📷 사진으로 묻기» 구현 · 측정 · 채택 · 문서 재작성까지 끝 (작업 브랜치 `photo-feature`). 남은 것 = 새 캡처 6장 반영 · CONTEXT 부록 F(슬랙 왕복) · `main` 반영.**
+수업 PDF 의 필수 요건은 2026-11-19 에 이미 충족(`main`). 이번 작업은 그 위에 사진 기능 + 생성 모델 교체를 얹은 것입니다.
 
-- **▶ 다음 작업 — 사진으로 묻기** (2026-11-20 사용자 결정 · 계획 · 설계: [docs/photo-feature-plan.md](docs/photo-feature-plan.md))
-  - 슬랙에 사진 → 비전 모델이 **품목 이름**을 붙임 → 지금 RAG(문서 근거 + 출처)로 답. 사진은 «이름 붙이기» 에만, 답은 문서에서
-  - **제출은 이 저장소** (사진 기능까지 넣어서) — 13주차(11/27) 중간 점검 · **14주차(12/4) 최종 제출**
-  - **합격선 = 수업 기본 `gemma3:4b` 보다 좋을 것** (같은 인덱스 · 같은 문항). 지금 생성 모델(A.X)보다 못해도 됨 —
-    A.X 와 비교하거나 «A.X 보다 낮음» 을 표시하지 않음 (사용자: «아직 제출 전»)
-  - 후보: ⭐ `gemma4:e4b` · `qwen3.5:4b` (한 모델로 답 + 사진) / 보험: 지금 생성 모델 + `qwen3.5:0.8b` (사진 이름만). 나머지 · 기각 이유는 계획 문서 4장 · 부록
-  - **문서 방침 (사용자 결정)**: 채택하면 README · CONTEXT · docs 를 **새 모델 기준으로 처음부터** 씀 — A.X 는 언급하지 않아도 되고, 비교군은 `gemma3:4b`.
-    단 숫자 · 캡처는 **전부 새 모델로 다시 재고 다시 찍음** (옛 숫자를 새 모델 이름으로 옮겨 적지 않음 — 실측 원칙).
-    모델 교체로 고칠 곳은 계획 문서 7-2, **새 기능이라 새로 쓸 README 내용 · 새 캡처 3장**(`slack-photo` · `slack-photo-ask` · `trace-photo`)은 7-3
-  - 순서: **구현(클라우드 · 모델은 환경 변수로 바꿔 끼우게) → 측정(사용자 PC) → 판정 규칙대로 기본값 → 문서 · 캡처 → `main`** — 2026-11-17 때와 같은 방식
-- **▶ 다음 세션 시작 순서** (사용자가 «CLAUDE.md 보고 시작하자» 라고 하면 이대로 · 자세한 건 계획 문서 5-2 · 5-3 · 6장)
-  1. **상태 확인** — `git status` · `git log --oneline -3` (하네스가 정해 준 작업 브랜치 · `main` 최신에서 출발) · `ls venv/bin/python data/`
-     - 클라우드 환경이 «버릴지도 (분리배출 RAG 봇)» 이면 설치 스크립트가 `venv` 를 만들어 둠 — 됐는지 확인해 아래 «클라우드 환경» 줄에 적기.
-       없으면 `python3 -m venv venv && ./venv/bin/python -m pip install -q -r requirements.txt` (약 15초 · pypdf 6.21.4 고정)
-     - 사례집 PDF 가 없으면 `curl -sS -L -o "data/분리배출_QA사례100_2026.pdf" "https://www.kwaste.or.kr/lib/fileDownload.php?save_file=attachment_202605081124500.29008db5d7c61e61718f7a154de14539.pdf&file_name=QA100.pdf"` → **68,862,868바이트**인지 확인 (첫 시도가 연결 리셋이면 한 번 더)
-     - 기본(Default) 환경이면 사례집이 막힘 → `get_environment` 로 확인하고 «버릴지도 (분리배출 RAG 봇)» 로 `switch_environment`(네트워크만 · 사용자 승인 카드 한 번)를 제안.
-       옮겨도 설치 스크립트는 안 도니 venv 는 바로 아래 명령으로 직접. 사용자가 거절하면 코드 작업만 하고 `--check` · `offline_check` 는 사용자 PC 에서
-     - **사용자 PC(RTX 3070)에서 Claude Code 를 연 경우엔 이 환경 확인이 필요 없음** — PC 의 venv · 사례집 · Ollama 를 그대로 쓰고 측정(계획 6장)까지 같은 세션에서 가능
-     - 출발점 확인: `./venv/bin/python build_index.py --check` (15항목 ✅ · 456청크) · `./venv/bin/python tests/offline_check.py` (ALL OK)
-  2. **사용자에게 한 번에 확인** (첫 답에서): ① 이번 세션에 GPU PC 를 쓸 수 있나 ② 판정 목표치(계획 6-3 · 사진 15/20 등) 확정
-     ③ 테스트 사진을 저장소에 커밋할지 ④ 슬랙 앱에 `files:read` 추가 · 재설치 가능한지 ⑤ 사진 크기 줄이기용 Pillow(새 패키지 · 지금 없음)를 들일지
-  3. **구현** (클라우드) — 계획 5-2 의 파일별 설계대로: `config` → `rag_backend` → `slack_rag_bot` → `evaluate photo` → `offline_check` 새 검사.
-     단계마다 `tests/offline_check.py` 통과 · 코드가 SPEC 과 달라지면 SPEC 13-1 에 새 행
-  4. **측정** (사용자 PC) — 계획 6장의 명령을 한 단계씩 안내(`gemma3:4b` 기준선 → 후보 → VRAM → 사진) → 출력 · 결과 파일을 받아 `eval_results/` 와 표로
-  5. **채택 → 문서 · 캡처** — 판정 규칙대로 기본값 → 계획 7-2 · 7-3 → 사용자가 캡처를 ZIP 으로 → 끝나면 `main` (이 계획 문서는 결과 기록으로 바꾸거나 정리)
+- **채택 구성 (2026-11-24 사용자 결정)** — 생성 **`gemma4:e4b`** · 사진 **`qwen3.5:4b`** (`PHOTO_MODE=pick` — 문서 품목 이름 377개에서 고르기) · 임베딩 KURE-v1 그대로
+  - 텍스트 30문항: 수업 기본 `gemma3:4b` 15/30 · 자기모순 11 → **gemma4:e4b 29/30 · 자기모순 1 · 범위 밖 4/4 · 입력검증 2/2** (`qwen3.5:4b` 25/30 은 범위 밖 2/4 로 탈락)
+  - 사진(AI 생성 20장 + 범위 밖 4장): **16/20** (합격선 15) · 범위 밖 **2/4** (기준 4/4 미달 → README 6번 한계로 기록 · 사용자 결정) · 사진 1장 4.1초
+  - VRAM: 세 모델 함께 nvidia-smi **7.6 ~ 7.7GB** · 셋 다 100% GPU (파일 크기 합 9.8GB 인데 들어감 — gemma4 층별 임베딩을 GPU 밖에 두는 것으로 추정)
+  - 결과 전체 · 계획과 달라진 점: [docs/photo-feature-plan.md](docs/photo-feature-plan.md) 맨 위 «결과» · CONTEXT 부록 C · E · G
+  - **문서 방침**: README · CONTEXT · docs 를 새 모델 기준으로 다시 씀 (A.X 는 언급하지 않음 · 비교군 `gemma3:4b`) — 2026-11-24 완료.
+    사진은 **AI 생성 이미지** · 지시문을 **같은 사진으로 고침**(v1 → v2) · 새 사진 세트로 다시 재지 않음 → README 6번 · 부록 G 에 밝힘
+- **▶ 다음에 할 일** (이 순서로)
+  1. **캡처 6장** — 사용자가 `captures_raw/`(gitignore)에 넣음: `slack-thread` · `slack-compare` · `slack-photo` · `trace-rag` · `trace-retriever` · `trace-photo` (.png).
+     README 2 · 4번이 이 이름을 이미 가리킴 → 받으면 눈으로 확인(슬랙 ID · 개인정보가 없는지) → `docs/` 로 복사 → README 캡션을 실제 화면 내용에 맞춤
+     (`trace-build.png` 는 모델과 무관해 그대로). 캡처 때 봇 콘솔의 «받음/답함» 줄로 CONTEXT **부록 F(슬랙 왕복)** 를 2026-11-24 값으로 다시 씀 — 지금은 11-17(옛 모델) 표가 남아 있음
+  2. 검사: `build_index.py --check` · `tests/offline_check.py`(71항목) · 문서 링크 · README 의 이미지 6개 존재 → 커밋 → **`main` 반영** (`git push origin HEAD:main` — 이 PC 는 CLI push 가 막혀 있어 **GitHub Desktop 의 Push** 로. 아래 함정 28)
+  3. (선택) 시나리오 8(Ollama 끄기) · 새 사진 세트로 사진 다시 재기 · 범위 밖 사진 개선
 
 - **저장소 두 곳** (2026-11-20)
   - **이 저장소 `recycle-rag-slack-bot` 이 원본이자 제출본** — 앞으로의 수정은 여기에만 · 14주차(12/4) 최종 제출도 이 저장소로 (2026-11-20 사용자 결정)
@@ -52,9 +40,14 @@
   기준 문서(수업 저장소): [`11-06/2교시_분할_메타데이터와_프로젝트_착수.pdf`](https://github.com/Jinseok2419342/langchain-2026-20241499/blob/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/2%EA%B5%90%EC%8B%9C_%EB%B6%84%ED%95%A0_%EB%A9%94%ED%83%80%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%99%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%B0%A9%EC%88%98.pdf) §4-1 ~ §4-4 (23 ~ 29쪽) · [`11-06/project_template/`](https://github.com/Jinseok2419342/langchain-2026-20241499/tree/59cd1d32546a399a8c8cfeb17bfc6110fc5343c3/11-06/project_template) 의 `README.md` · `CONTEXT.md`.
   README 끝의 «필수 요건 대조» 표 · «제출 체크리스트» 가 이것과 맞춰져 있습니다(2026-11-19 전부 ✅ 확인).
   모델 성능을 더 깊게 재검증하거나, 메인 PC(한글 경로)에서 다시 세팅할 필요는 **없다** 고 사용자가 결정함 — 같은 사양의 보조 PC 에서 처음부터 세팅해 통과했음.
-- **남은 것**: 위 «사진으로 묻기» (선택 기능 · 사용자가 하기로 함). 시나리오 8(Ollama 를 끈 상태의 오류 처리)은 SPEC 6-5 에 스스로 적어 둔 점검 항목일 뿐 **수업 요건이 아님** — 사용자가 원할 때만.
+- **남은 것**: 위 «▶ 다음에 할 일». 시나리오 8(Ollama 를 끈 상태의 오류 처리)은 SPEC 6-5 에 스스로 적어 둔 점검 항목일 뿐 **수업 요건이 아님** — 사용자가 원할 때만.
+- **이 PC (2026-11-24 세션)** — Windows 11 · RTX 3070 8GB · 경로 `C:\Users\USER\Documents\GitHub\recycle-rag-slack-bot` (영문) · Ollama 0.32.14 가 PATH 밖(함정 19와 같은 위치).
+  11-17 의 보조 PC 와 다른 PC 일 수 있음(모델이 하나도 없었음 — `gemma3:4b` · `exaone3.5:2.4b` 만). 이번에 venv · 사례집 · 모델 4개(`gemma4:e4b` · `qwen3.5:4b` · `qwen3.5:0.8b` · KURE)를 새로 준비함.
+  `.env` 는 사용자가 새로 만듦 · 슬랙 봇 토큰 scope: `chat:write` · `chat:write.public` · `app_mentions:read` · `im:read` · `im:history` · `files:read` (auth.test 로 확인)
 - **사용자와 일하는 방식**
   - 한국어로 **쉽게 · 한 단계씩**. 화면(LangSmith · 슬랙) 조작을 안내할 때는 사용자 화면 캡처를 받아 실제 버튼 이름으로 안내
+  - 사용자가 직접 해야 하는 설정(`.env` · 슬랙 앱 권한 등)은 **어디서 무엇을 누르는지까지 세세히** 안내 (2026-11-24 사용자 요청). «테스트 사진» 처럼 처음 듣는 말은 왜 필요한지부터 설명
+  - 사용자는 GitHub Desktop 을 씀 — CLI push 가 안 되는 PC 에서는 «GitHub Desktop 에서 Push origin» 으로 부탁
   - 커밋 작성자는 **사용자 계정** — 기존 커밋과 같은 작성자(`git log --format='%an <%ae>' -3` 로 확인 · `Jinseok2419342`)를
     `git -c user.name=… -c user.email=… commit` 으로 지정. `Co-Authored-By` · `Claude-Session` 같은 **Claude 서명 줄은 넣지 않음** (사용자 요청 · 하네스 기본 안내보다 우선)
   - **커밋 · 푸시 · `main` 반영은 묻지 않고 알아서** (2026-11-20 사용자: «반영할까 물어보지 말고 알아서 해») — 검증(`--check` · `offline_check` · 링크)을 통과한 것만.
@@ -148,7 +141,7 @@
 1. **슬랙으로 묻고 슬랙으로 답한다** — 채널 멘션 · DM → **같은 스레드에** 답. 터미널에서만 도는 건 요건 미충족
 2. **RAG 또는 MCP** 하나 이상 → 이 프로젝트는 **RAG** (MCP · LangGraph 안 씀)
 3. **LangChain 구현 + LangSmith 추적** 둘 다
-4. **VRAM 8GB 에서 실제로 동작** (보조 PC RTX 3070 8GB 에서 실측 5.75 ~ 6.37 GB — 메인 PC 와 같은 사양)
+4. **VRAM 8GB 에서 실제로 동작** (RTX 3070 8GB 에서 세 모델 동시 실측 **7.6 ~ 7.7 GB** · 100% GPU — 2026-11-24. 여유 0.3GB 남짓이라 다른 모델이 남아 있으면 넘침)
 5. 피할 것: 12B 이상 모델 · 대량 크롤링 · 상용 API 상시 호출 · 범위 없는 챗봇
 6. 토큰은 **루트 `.env` 에만**
 7. **README 가 곧 점수**(발표 없음). 숫자는 추정 대신 **실측**으로 쓰는 것이 이 프로젝트의 원칙
@@ -162,6 +155,9 @@
 - ✅ **독립 저장소 `recycle-rag-slack-bot` 으로 옮김** — 히스토리 보존 · 이 저장소가 원본 · 수업 저장소 `mini_project/` 는 동결 (2026-11-20)
 - ✅ **다음 기능 = 사진으로 묻기** · 합격선은 `gemma3:4b` 보다 좋을 것 · 채택하면 문서를 새 모델 기준으로 다시 씀(A.X 언급 불필요 · 숫자 · 캡처는 새로 실측) (2026-11-20)
 - ✅ **제출 = 이 저장소** (사진 기능까지 넣어서) · `main` 반영은 묻지 않고 알아서 (2026-11-20)
+- ✅ **2026-11-24 결정** — 사진 판정 기준 15/20 · 범위 밖 4/4 (측정 전) / 테스트 사진 커밋 · Pillow · 슬랙 `files:read` 승인 /
+  테스트 사진은 **AI 생성 이미지**로(사용자 제안 · 글자 없이) / **채택 = 생성 gemma4:e4b + 사진 qwen3.5:4b(pick)** · 범위 밖 2/4 는 한계로 기록 /
+  새 사진 세트로 다시 재기는 보류(«지시문은 어차피 개선돼야 했고 파인튜닝도 아님») — README 에 «같은 사진으로 지시문을 고침» 을 밝힘
 - ✅ LangSmith 프로젝트 이름은 `config.py` 가 `recycle-bot-20241499` 로 지정(`RECYCLE_LANGSMITH_PROJECT` 로 바꿀 수 있음) — 2026-11-17 승인 · README 체크리스트 · CONTEXT «관측» 도 고침 (미결 1)
 
 ## 폴더 구조
@@ -170,26 +166,28 @@
 recycle-rag-slack-bot/             ← git 저장소 맨 위 (github.com/Jinseok2419342/recycle-rag-slack-bot) · ★ 모든 명령은 여기서
 ├── .env                           ← 토큰 · 설정. 절대 커밋 금지 (.gitignore 됨 · 수업 저장소의 루트 .env 를 복사해 써도 됨)
 ├── venv/                          ← 파이썬 가상환경 (.gitignore 됨)
-├── .gitignore                     ← .env · venv · /index*/ · 사례집 PDF
+├── .gitignore                     ← .env · venv · /index*/ · 사례집 PDF · /photos_raw/ · /captures_raw/
 ├── README.md · CONTEXT.md         ← 명세 (채점 대상)
 ├── SPEC.md                        ← 상세 구현 명세서
 ├── CLAUDE.md                      ← 이 파일
 ├── config.py                      ← 공용 상수 · 경로 · RECYCLE_* · LangSmith 프로젝트 지정 (모든 파일이 맨 먼저 import)
 ├── faiss_io.py                    ← 수업 저장소 11-06/faiss_io.py 를 그대로 복사 (한글 경로 대비 · 수정 금지)
 ├── build_index.py                 ← PDF 2건 → 정리 → 구역별 구조 분할 → 메타데이터 → FAISS
-├── rag_backend.py                 ← 검색기(RecycleRetriever) · ask · ask_plain · search · source_of · warmup
-├── slack_rag_bot.py               ← Socket Mode 봇 (입구 · 출구)
+├── rag_backend.py                 ← 검색기(RecycleRetriever) · ask · ask_plain · search · source_of · warmup · 📷 ask_photo · redact_images
+├── slack_rag_bot.py               ← Socket Mode 봇 (입구 · 출구 · 사진 내려받기)
 ├── questions.py                   ← 평가 문항 30개 (+ 자기 검사)
-├── evaluate.py                    ← retrieval | answer 측정 → eval_results/
+├── evaluate.py                    ← retrieval | answer | photo | prep-photos → eval_results/
 ├── requirements.txt · .env.example
-├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (40항목)
-├── docs/architecture.md           ← 구성도 · 프로세스 · 흐름도 (Mermaid 8개)
-├── docs/scenarios.md              ← 가상 시나리오 8개 (Mermaid 8개)
-├── docs/photo-feature-plan.md     ← ▶ 다음 작업: 사진으로 묻기 — 모델 후보 · 실험 계획 · 판정 규칙 · 고칠 곳 (2026-11-20 · 계획)
-├── docs/*.png                     ← 캡처 5장 (trace-rag · trace-retriever · trace-build · slack-thread · slack-compare)
-├── scratch_eval.py                ← 10주차 생성 모델 비교 스크립트 (CONTEXT 부록 C 재현용 · 그대로 둠)
-├── index_recycle/                 ← build_index.py 가 만듦 (gitignore · 보조 PC 에만 있음)
-├── eval_results/                  ← evaluate.py 가 만듦 (커밋함 · 2026-11-17 실행 7회분)
+├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (71항목)
+├── docs/architecture.md           ← 구성도 · 프로세스 · 흐름도 (사진 흐름 포함)
+├── docs/scenarios.md              ← 가상 시나리오 10개 (9 · 10 = 사진)
+├── docs/photo-feature-plan.md     ← 사진으로 묻기 — 맨 위 «결과»(2026-11-24) + 아래는 2026-11-20 계획 그대로
+├── docs/*.png                     ← 캡처 — trace-build(11-17) + 6장(2026-11-24 새로: trace-rag · trace-retriever · trace-photo · slack-thread · slack-compare · slack-photo)
+├── photos/                        ← 사진 평가 세트 24장 (AI 생성 · prep-photos 로 1280px · 메타데이터 삭제) — 파일 이름 = 문항 id · out_* = 범위 밖
+├── photos_raw/ · captures_raw/    ← 원본 사진 · 캡처를 잠시 두는 곳 (gitignore)
+├── scratch_eval.py                ← 10주차 생성 모델 비교 스크립트 (CONTEXT 부록 C 재현용 · 2026-11-24 reasoning=False 한 줄만 추가)
+├── index_recycle/                 ← build_index.py 가 만듦 (gitignore · PC 마다 다시 만듦)
+├── eval_results/                  ← evaluate.py 가 만듦 (커밋함 · 2026-11-17 7회 + 2026-11-24 기준선 · 후보 · 사진 · scratch_eval 기록)
 └── data/
     ├── 분리배출_가이드라인.pdf            ← 커밋됨 (4.8MB · 36쪽)
     └── 분리배출_QA사례100_2026.pdf       ← ⚠️ 68MB · gitignore → 없으면 아래 명령으로 받기
@@ -216,7 +214,7 @@ $env:PYTHONUTF8=1
 
 | # | 명령 | 통과 조건 | 막히면 |
 |---|---|---|---|
-| 0 | `ollama pull hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M` · `ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0` · 루트 `.env` 의 `LANGSMITH_TRACING=true` · `ollama ps` 로 GPU 비우기 · 10주차 봇 · 수업 저장소의 같은 봇 끄기 | `ollama list` 에 두 줄 | SPEC 2-2절 |
+| 0 | `ollama pull gemma4:e4b` · `ollama pull qwen3.5:4b` · `ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0`(멈추면 함정 24) · 루트 `.env` 의 `LANGSMITH_TRACING=true` · `ollama ps` 로 GPU 비우기 · 10주차 봇 · 다른 PC 의 같은 봇 끄기 | `ollama list` 에 세 줄 | SPEC 2-2절 · README 5-2 |
 | 1 | `python build_index.py --check` | 15항목 ✅ (임베딩 없음) | 사례집 PDF 가 없으면 위 «문서 받기» |
 | 2 | `python tests/offline_check.py` | `ALL OK` (40항목 · 모델 없음) | 패키지 버전 차이 — 메인 PC 는 Python 3.13 · 이 검사는 3.11 에서 돌렸음 |
 | 3 | `python build_index.py` | `✅ 저장` + 되읽기 확인 줄에 «안경·선글라스 p.31» · `index_recycle/manifest.json` 생김 | 한글 경로면 `index.bytes` 로 저장되는 것이 정상 |
@@ -254,11 +252,12 @@ $env:PYTHONUTF8=1
 
 | 모델 이름 (Ollama) | 용도 | 상태 |
 |---|---|---|
-| `hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M` | ★ **생성** (SKT A.X 4.0 Light 7B · 4.4GB) | 보조 PC 에 pull 해서 사용 (2026-11-17) · 메인 PC 에는 없음 (2026-11-13) |
-| `hf.co/mykor/KURE-v1-gguf:Q8_0` | ★ **임베딩** (고려대 KURE-v1 · 1024차원 · 0.6GB) | 위와 같음 |
-| `gemma3:4b` · `qwen3-embedding:0.6b` | 수업 기본 — **비교 기준으로만** | 설치됨 |
-| `exaone3.5:2.4b` | 생성 모델 대체용 (`RECYCLE_MODEL` 로 교체 · 인덱스 재생성 불필요) | 설치됨 |
-| `gemma4:e4b` · `qwen3.5:4b` · `qwen3.5:0.8b` | 사진 기능 후보 ([docs/photo-feature-plan.md](docs/photo-feature-plan.md) 6장 실험용) | **아직 pull 안 함** |
+| `gemma4:e4b` | ★ **생성** (Google · 7.5B · 실효 4.5B · 6.1GB 파일 · 생각 모드 있음 → 끔) | 2026-11-24 PC 에 pull (2026-11-24 채택) |
+| `qwen3.5:4b` | ★ **사진 → 품목 이름** (Alibaba · 4.2B · 3.1GB · 생각 모드 있음 → 끔) | 2026-11-24 PC 에 pull |
+| `hf.co/mykor/KURE-v1-gguf:Q8_0` | ★ **임베딩** (고려대 KURE-v1 · 1024차원 · 0.6GB) | 2026-11-24 PC 에는 GGUF 를 직접 받아 `ollama create` (함정 24) |
+| `gemma3:4b` · `qwen3-embedding:0.6b` | 수업 기본 — **비교 기준으로만** | `gemma3:4b` 는 2026-11-24 PC 에도 있음 |
+| `qwen3.5:0.8b` | 사진 후보였음 (0 ~ 1/20 · 탈락) | 2026-11-24 PC 에 있음 (지워도 됨 — 사용자 확인 뒤) |
+| `hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M` | 2026-11-17 까지의 생성 모델 (지금은 안 씀) | 11-17 보조 PC 에만 |
 
 - 루트 `.env` (= 저장소 맨 위 · 값은 출력하지 말 것 · 키 이름은 [.env.example](.env.example) · 수업 저장소의 루트 `.env` 를 그대로 복사해 써도 됨):
 
@@ -269,7 +268,8 @@ $env:PYTHONUTF8=1
 | `EMBED_MODEL` · `MODEL` | 수업 저장소에서 복사해 왔다면 있음 (다른 주차 실습용) | **건드리지 않음** — 이 프로젝트는 읽지 않음 |
 | `RECYCLE_*` | 없음 | 넣지 않아도 됨. 바꿔서 잴 때만 |
 
-- 환경 변수로 바꿀 수 있는 것: `RECYCLE_MODEL` · `RECYCLE_EMBED_MODEL` · `RECYCLE_STRATEGY`(basic\|multiquery) · `RECYCLE_YEAR_BONUS` · `RECYCLE_PROMPT`(base\|recent) · `RECYCLE_INDEX` · `RECYCLE_LANGSMITH_PROJECT`.
+- 환경 변수로 바꿀 수 있는 것: `RECYCLE_MODEL` · `RECYCLE_EMBED_MODEL` · `RECYCLE_STRATEGY`(basic\|multiquery) · `RECYCLE_YEAR_BONUS` · `RECYCLE_PROMPT`(base\|recent) · `RECYCLE_INDEX` · `RECYCLE_LANGSMITH_PROJECT`
+  · `RECYCLE_REASONING`(off\|on\|auto) · 📷 `RECYCLE_VISION_MODEL` · `RECYCLE_PHOTO_MODE`(pick\|free) · `RECYCLE_PHOTO_REASONING` · `RECYCLE_PHOTO_QUERY`(label\|label+desc) · `RECYCLE_PHOTO_SIDE` · `RECYCLE_PHOTO_MAX_DIST` · `RECYCLE_PHOTO_MIN_GAP`.
   ⚠️ «실행 한 번 = 설정 하나» — 인덱스 · 모델을 한 번만 읽어 계속 쓰므로 실행 중에는 바뀌지 않음
 
 ## 구현 요약 (자세한 건 SPEC · 그림은 docs/architecture.md)
@@ -291,21 +291,25 @@ $env:PYTHONUTF8=1
 - **인덱스**: FAISS + `faiss_io` · `index_recycle/` · **`manifest.json`** 에 임베딩 모델 기록 → 읽을 때 다르면 종료
 - **검색** (`rag_backend.py`): `RecycleRetriever`(`BaseRetriever`) = `rewrite_queries`(multiquery 일 때만) → `candidates`(질문마다 10개 · 같은 청크는 최소 거리) → `rank`(year ≥ 2020 이면 거리 − `year_bonus` · 상위 3개).
   돌려주는 청크의 metadata 에 `distance` · `adjusted` · `via` 를 덧붙임(복사본에). **기본값 `basic` · `0.09` (E1~E4 실측 뒤 채택 · 2026-11-17)**
-- **생성**: LCEL `RAG_PROMPTS["base"] | ChatOllama(temperature=0.1, num_predict=300, num_ctx=4096, keep_alive=1800) | StrOutputParser`.
-  `base` 프롬프트는 `scratch_eval.py` 의 `PROMPT` 와 **글자 단위로 같음** (부록 C 의 6/6 이 이 문구로 잰 값). `recent` 는 E4 실험용
+- **생성**: LCEL `RAG_PROMPTS["base"] | ChatOllama(gemma4:e4b, temperature=0.1, num_predict=300, num_ctx=4096, keep_alive=1800, reasoning=False) | StrOutputParser`.
+  `base` 프롬프트는 `scratch_eval.py` 의 `PROMPT` 와 **글자 단위로 같음** (부록 C 의 6/6 이 이 문구로 잰 값). `recent` 는 E4 실험용(효과 없음)
+- **📷 사진** (`ask_photo` · trace `recycle-photo`): `prepare_image`(Pillow · 회전 · 768px · EXIF 버림) → `describe-photo`(qwen3.5:4b · `pick` 지시문 v2 = 설명 줄 + 문서 품목 이름 377개 중 하나 / `모름`)
+  → `parse_label` · `snap_to_item` → `RecycleRetriever`(검색어 = 이름 + 같이 쓴 글) → `decide`(확신 기준 · 기본 끔) → `generate`. 슬랙은 📷 줄 + 답 + 📚 + 🔁 다른 후보.
+  사진은 `Client(hide_inputs=redact_images)` + `tracing_context(client=…)` 로 LangSmith 에 «<image N bytes>» 만
 - **출처 형식**: `안경·선글라스 · 사례집(2026) p.31` — 코드가 metadata 로 만듦(`source_of`)
 - **슬랙** (`slack_rag_bot.py`): 멘션 + DM, 전부 `thread_ts` 로(같은 스레드), `검색` · `비교` 모드, ⏳ 자리잡기 → `chat_update`, 300자 제한,
   «찾지 못했습니다» 면 근거 숨기고 구청 안내, 근거에 2018 · 2026 이 섞이면 ℹ️ 안내 줄, 예외 내용은 콘솔에만, `&` `<` `>` 이스케이프, 봇 메시지 무시, 시작 시 워밍업
-- **LangSmith**: 프로젝트 `recycle-bot-20241499` · trace `recycle-rag`(아래 `RecycleRetriever` + `generate`) · `recycle-plain` · `recycle-search` · `build-chunks` · 태그 `rag`/`no-rag`/`search`/`eval`
-- **평가** (`evaluate.py`): `retrieval` = 전략 × `year_bonus`(0 · 0.5g · 1g · 2g) 격자 · multiquery 3회 반복 / `answer` = `must` · `bad` · 자기모순 채점.
+- **LangSmith**: 프로젝트 `recycle-bot-20241499` · trace `recycle-rag`(아래 `RecycleRetriever` + `generate`) · `recycle-photo` · `recycle-plain` · `recycle-search` · `build-chunks` · 태그 `rag`/`photo`/`no-rag`/`search`/`eval`
+- **평가** (`evaluate.py`): `retrieval` = 전략 × `year_bonus`(0 · 0.5g · 1g · 2g) 격자 · multiquery 3회 반복 / `answer` = `must` · `bad` · 자기모순 채점 /
+  `photo` = `photos/<문항 id>.jpg` 의 정답이 검색 3위 안 · `out_*` 는 모름 · 되묻기 · 찾지 못함이면 정답 / `prep-photos` = 원본 → 1280px · EXIF 삭제 사본.
   옵션 `--index` · `--model` · `--prompt` · `--strategy` · `--year-bonus` · `--ids`(`scratch` = 10주차 6문항) · `--repeats` · `--no-multiquery`
+  · `--vision-model` · `--photo-mode` · `--photo-reasoning` · `--photo-query` · `--photo-side` · `--dir` · `--src`
 
 ## 10주차 실측 (근거 데이터 · 자세한 건 CONTEXT 부록 A ~ C — 구현 뒤 재측정은 위 «첫 실행 결과» · 부록 D ~ F)
 
 - 임베딩(재귀 400/40 · **181청크** · 일상 말투 15문항): Top-3 정답 qwen3 **12/15** → KURE **15/15**
-- 생성(KURE top-3 · 6문항): gemma3:4b **4/6**(자기모순 2회) → A.X **6/6**, 답당 0.4~0.7초, 첫 호출 20초(로딩)
-- VRAM: A.X 4.6GB + KURE 0.38GB → nvidia-smi **5.6GB / 8GB**
-- ⚠️ 위는 **구조 분할 전**(재귀 181청크)의 값. 지금 인덱스는 456청크 → 2026-11-17 에 다시 잼: 10주차 6문항 6/6 · 30문항 28/30 · nvidia-smi 5.75~6.37GB
+- 생성(KURE top-3 · 6문항 · 181청크): gemma3:4b **4/6**(자기모순 2회) → (2026-11-24 다시) gemma4:e4b **6/6** · 답당 0.7~1.0초
+- ⚠️ 지금 인덱스는 456청크 → 2026-11-24 생성 30문항: gemma3:4b 15/30 · gemma4:e4b 29/30 · 세 모델 동시 nvidia-smi 7.6~7.7GB (부록 E · 위 «▶»)
 
 ## 함정 (밟았거나 실측으로 확인한 것 · 전체는 SPEC 12장)
 
@@ -334,6 +338,17 @@ $env:PYTHONUTF8=1
 22. **pypdf 7.x 금지 — `requirements.txt` 가 `pypdf==6.21.4` 로 고정** (2026-11-20 실측). 7.x 는 «배출(전기이불담요 포함)» 을
     «배출 (…» 처럼 공백을 넣어 뽑아 `ITEM_DROP` 1건이 안 걸림 → 품목사전 283건 · `--check` 실패 · 뜻이 틀어진 청크가 인덱스에 들어감.
     가이드라인 3구역(본문 38 · FAQ 36 · 품목 282)은 6.21.4 에서 기록과 같음을 클라우드에서 확인. 사례집 구역은 PDF 가 없어 못 봄
+23. **gemma4:e4b · qwen3.5 는 생각(thinking) 모드가 기본 켜짐** — `reasoning` 을 안 주면 300토큰을 생각에 다 써서 **답이 빈칸**(scratch_eval 0/6 · 2026-11-24).
+    `config.REASONING`(기본 off → `think:false`)으로 끔. `think:false` 는 생각 기능이 없는 gemma3:4b 도 받음(`true` 만 «does not support thinking» 오류)
+24. **Hugging Face 에서 `ollama pull hf.co/…` 가 멈출 수 있음** (2026-11-24 PC · 수 KB/s) — Ollama 레지스트리 모델은 빠름.
+    같은 GGUF 를 4MB 조각 · 재시도로 받아(`requests` · sha256 확인 — KURE Q8_0 = `055cd596…`) `Modelfile` 에 `FROM ./파일.gguf` → `ollama create hf.co/mykor/KURE-v1-gguf:Q8_0 -f Modelfile`.
+    같은 sha256 이라 검색 평가가 기록과 똑같이 재현됨. 같은 이름의 다른 업로드(`daynice/kure-v1` = BF16)는 숫자가 달라질 수 있어 쓰지 않음
+25. **세 모델이 VRAM 7.6~7.7GB** — 봇을 켠 채 같은 GPU 로 `evaluate.py` 를 돌리면 Ollama 가 모델을 번갈아 올리느라 **몇 분씩 멈춘 듯 보임**(사진 측정 7분 정지 · 슬랙 답 13~29초).
+    측정 전에 봇을 끄고 `ollama ps` → `ollama stop`. 측정 출력은 파이프로 받으면 끝날 때 한꺼번에 나옴(`python -u`)
+26. **`RunnableLambda` 함수의 `config` 인자가 `config` 모듈을 가림** — `_photo(inputs, config)` 안에서 `config.PHOTO_MODE` 를 쓰면 dict 오류. 모듈 값은 `ask_photo` 에서 inputs 로 넘김(2026-11-24 실제로 밟음 · 그 측정 1회 무효)
+27. **작은 비전 모델은 지시문의 예시를 베낌** — `qwen3.5:0.8b` 는 예시 «건전지» 를 거의 모든 사진에, 목록에서 고르게 하면 첫 항목만 반복. 사진 지시문에 예시를 넣지 말 것(v2)
+28. **이 PC(2026-11-24)는 CLI `git push` 가 막힘**(GitHub 로그인 없음 · Credential Manager 가 창을 못 띄움) — 커밋은 CLI 로, push 는 사용자가 **GitHub Desktop 의 Push origin**.
+    `main` 반영도 GitHub Desktop 에서(또는 사용자가 터미널에서 `git push origin photo-feature:main`)
 
 ## 사용자 확인이 필요한 미결 사항 (SPEC 13장)
 

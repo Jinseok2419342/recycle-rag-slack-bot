@@ -20,7 +20,9 @@ HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE / "data"
 INDEX_DIR = HERE / os.getenv("RECYCLE_INDEX", "index_recycle")   # 평가에서 비교용 인덱스로 바꿀 때만
 
-MODEL = os.getenv("RECYCLE_MODEL", "hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M")
+# ★ 생성 모델 — 수업 기본 gemma3:4b 와 같은 인덱스 · 같은 30문항으로 비교해 채택 (2026-11-24 · eval_results/20261124-1535*~1538*)
+#   gemma3:4b 15/30 · 자기모순 11  →  gemma4:e4b 29/30 · 자기모순 1 · 범위 밖 4/4 · 입력검증 2/2
+MODEL = os.getenv("RECYCLE_MODEL", "gemma4:e4b")
 EMBED_MODEL = os.getenv("RECYCLE_EMBED_MODEL", "hf.co/mykor/KURE-v1-gguf:Q8_0")
 
 DOCS = [   # (파일, year, 출처에 쓸 짧은 이름)
@@ -59,13 +61,18 @@ if _reasoning not in REASONINGS:
 REASONING = REASONINGS[_reasoning]
 
 # ── 사진으로 묻기 — 사진은 «품목 이름 붙이기» 에만 쓰고, 답은 지금처럼 문서에서 (docs/photo-feature-plan.md) ──
-VISION_MODEL = os.getenv("RECYCLE_VISION_MODEL") or MODEL   # 비우면 생성 모델이 사진도 본다 (한 모델) · 따로 주면 두 모델
+# ★ 사진 모델 — 사진 20장 + 범위 밖 4장 실측으로 채택 (2026-11-24 · eval_results/20261124-161912-photo)
+#   gemma4:e4b 한 모델은 이름을 뭉뚱그려(뽁뽁이 · 아이스팩 → «비닐봉투») 여러 시도에도 최고 8/20 →
+#   qwen3.5:4b 가 문서 품목 목록에서 고르면 16/20. 둘 + KURE 를 함께 올려도 nvidia-smi 7.6 ~ 7.7GB (100% GPU)
+#   한 모델로 돌리려면 RECYCLE_VISION_MODEL 을 RECYCLE_MODEL 과 같게
+VISION_MODEL = os.getenv("RECYCLE_VISION_MODEL") or "qwen3.5:4b"
 PHOTO_SIDE = int(os.getenv("RECYCLE_PHOTO_SIDE", "768"))    # 긴 변을 이 픽셀까지 줄여 넣는다 (VRAM · 시간)
 PHOTO_MAX_BYTES = 15 * 1024 * 1024                          # 슬랙에서 받을 사진 원본 상한
 LABEL_MAX_OUT = 40                                          # 이름 붙이기는 짧게 — 토큰 상한
-# 이름 붙이는 방식 — free: 모델이 이름을 지어냄 · pick: 문서의 품목 이름 목록(377개)에서 고름 (2026-11-24 비교 → 실측으로 채택)
+# 이름 붙이는 방식 — free: 모델이 이름을 지어냄 · pick: 문서의 품목 이름 목록(377개)에서 고름
+#   qwen3.5:4b 에서 free 6/20 ↔ pick 16/20 (2026-11-24 · …160605 ↔ …160520) → pick
 PHOTO_MODES = ("free", "pick")
-PHOTO_MODE = os.getenv("RECYCLE_PHOTO_MODE", "free")
+PHOTO_MODE = os.getenv("RECYCLE_PHOTO_MODE", "pick")
 if PHOTO_MODE not in PHOTO_MODES:
     raise SystemExit(f"RECYCLE_PHOTO_MODE 는 {' | '.join(PHOTO_MODES)} 중 하나여야 합니다 (지금: {PHOTO_MODE!r})")
 # 사진 단계에서만 생각 모드를 따로 켤 수 있다 (답 단계는 REASONING 그대로) — 기본은 REASONING 과 같음
@@ -94,7 +101,7 @@ if STRATEGY not in STRATEGIES:
 
 
 def short_model(name: str = MODEL) -> str:
-    """«hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M» → «A.X-4.0-Light» · «gemma4:e4b» → «gemma4:e4b» (슬랙 꼬리 줄 · 로그용).
+    """«hf.co/mykor/KURE-v1-gguf:Q8_0» → «KURE-v1» · «gemma4:e4b» → «gemma4:e4b» (슬랙 꼬리 줄 · 로그용).
 
     Ollama 공식 모델은 태그가 크기(4b · e4b)라 남기고, hf.co/… 는 태그가 양자화 방식이라 뗀다.
     """

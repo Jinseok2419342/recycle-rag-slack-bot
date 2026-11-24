@@ -13,7 +13,8 @@
                                                                         │
                                               rag_backend.ask()         ▼
                                      ┌─ 검색  index_recycle/  (build_index.py ← data/*.pdf 2건)
-                                     └─ 생성  근거 + 질문 → A.X 4.0 Light (Ollama · 로컬)
+                                     └─ 생성  근거 + 질문 → gemma4:e4b (Ollama · 로컬)
+                                              (📷 사진이면 먼저 qwen3.5:4b 가 품목 이름을 붙이고 그 이름으로 검색)
                                                                         │
     같은 스레드 ◀── chat_postMessage / chat_update (xoxb) ──────────────┘
                     답 + 📚 근거
@@ -293,7 +294,8 @@ def main() -> None:
     print(f"인덱스    : {INDEX_DIR}  ({manifest.get('chunks', '?')}청크 · {manifest.get('mode', '?')})")
     print(f"임베딩    : {EMBED_MODEL}")
     print(f"생성 모델 : {MODEL}")
-    print(f"사진 모델 : {VISION_MODEL}" + ("  (생성 모델과 같음)" if VISION_MODEL == MODEL else "  (두 모델)"))
+    print(f"사진 모델 : {VISION_MODEL}" + ("  (생성 모델과 같음 — 한 모델)" if VISION_MODEL == MODEL else "")
+          + f"  · 이름 붙이기 {config.PHOTO_MODE}")
     print(f"검색      : {STRATEGY} · year_bonus {YEAR_BONUS}")
     print(f"LangSmith : {os.environ['LANGSMITH_PROJECT']}  (추적 {'켜짐 ✅' if tracing else '꺼짐'})")
     if not tracing:

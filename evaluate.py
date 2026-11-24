@@ -34,8 +34,9 @@
     photos/<문항 id>.jpg  (예: c2.jpg) → questions.py 의 gold 로 채점: 정답 품목이 검색 3위 안에 오나 · 답이 맞나
     photos/out_*.jpg      → 범위 밖 (음식 · 풍경 …): 엉뚱한 품목으로 답하지 않아야 정답 (못 알아봄 · 되묻기 · 찾지 못함)
     python evaluate.py prep-photos --src photos_raw    # 원본 → photos/ (긴 변 1280px · EXIF(촬영 위치 등) 삭제) — 커밋용
-    python evaluate.py photo --model gemma4:e4b        # 한 모델이 사진 + 답
-    python evaluate.py photo --vision-model qwen3.5:0.8b   # 사진만 다른 모델 (답은 --model 또는 기본 생성 모델)
+    python evaluate.py photo                           # 기본 구성 — 답 gemma4:e4b + 사진 qwen3.5:4b · pick
+    python evaluate.py photo --model gemma4:e4b --vision-model gemma4:e4b --photo-mode free   # 한 모델 · 이름 지어내기
+    (사진 옵션: --vision-model · --photo-mode free|pick · --photo-side 768 · --photo-reasoning off|on · --photo-query label|label+desc)
 """
 
 import os
@@ -457,7 +458,7 @@ def main() -> None:
     ap.add_argument("what", choices=("retrieval", "answer", "photo", "prep-photos"))
     ap.add_argument("--index", help="인덱스 폴더 이름 (기본 index_recycle)")
     ap.add_argument("--model", help="생성 모델 (기본 config.MODEL)")
-    ap.add_argument("--vision-model", help="photo: 사진 모델 (기본 = 생성 모델 — 한 모델)")
+    ap.add_argument("--vision-model", help="photo: 사진 모델 (기본 config.VISION_MODEL · --model 과 같게 주면 한 모델)")
     ap.add_argument("--photo-mode", choices=config.PHOTO_MODES, help="photo: free(이름 지어내기) | pick(문서 품목 목록에서 고르기)")
     ap.add_argument("--photo-reasoning", choices=tuple(config.REASONINGS), help="photo: 사진 단계의 생각 모드 (기본 = 답 단계와 같음)")
     ap.add_argument("--photo-query", choices=config.PHOTO_QUERIES, help="photo: 검색어 — label | label+desc (pick 의 설명 줄도)")

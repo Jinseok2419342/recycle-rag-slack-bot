@@ -1,7 +1,7 @@
 """명세 작성용 임시 실측 스크립트 — 생성 모델 후보를 같은 RAG 조건으로 비교한다.
 
     python scratch_eval.py gemma3:4b
-    python scratch_eval.py hf.co/mykor/A.X-4.0-Light-gguf:Q4_K_M
+    python scratch_eval.py gemma4:e4b
 
 검색은 KURE-v1 top-3 로 고정하고 생성 모델만 바꾼다 (바꾼 것은 하나뿐).
 """
@@ -54,7 +54,7 @@ PROMPT = ChatPromptTemplate.from_messages([
 ])
 llm = ChatOllama(model=GEN, temperature=0.1, num_predict=300,
                  reasoning=False)   # 2026-11-24 추가 — gemma4 는 생각 모드가 기본 켜짐이라 끄지 않으면 300토큰을 생각에 다 써서
-#                                     답이 빈칸(0/6). 생각 기능이 없는 gemma3 · A.X 에는 영향 없음 (think:false 를 받기만 함)
+#                                     답이 빈칸(0/6). 생각 기능이 없는 gemma3 에는 영향 없음 (think:false 를 받기만 함)
 chain = PROMPT | llm | StrOutputParser()
 
 # (질문, 정답이면 답에 있어야 할 말, 있으면 오답인 말)

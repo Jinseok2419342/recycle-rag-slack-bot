@@ -207,7 +207,7 @@ c = run("<@UBOT>", files=[{"mimetype": "image/jpeg", "size": s.PHOTO_MAX_BYTES +
 T(len(c) == 1 and "MB" in c[0][1]["text"], "사진 크기 상한")
 rb.get_vision_llm().label = "모름"; c = run("<@UBOT>", **IMG)
 T(c[1][1]["text"].startswith(s.PHOTO_UNKNOWN) and "📚" not in c[1][1]["text"], "못 알아본 사진 → 이름으로 물어 달라는 안내")
-rb.get_vision_llm().label = "<!channel> 아이스팩"; c = run("<@UBOT>", **IMG)
+rb.get_vision_llm().label = "<!channel>아이스팩"; c = run("<@UBOT>", **IMG)     # 띄어쓰기 없음 — pick 의 이름 맞추기를 타지 않게
 T("<!channel>" not in c[1][1]["text"] and "&lt;!channel&gt;" in c[1][1]["text"], "사진 이름도 이스케이프")
 rb.get_vision_llm().label = "아이스팩"; config.PHOTO_MAX_DIST = 1e-9; c = run("<@UBOT>", **IMG)
 T("이 중 무엇인가요" in c[1][1]["text"] and "1) " in c[1][1]["text"] and "📚" not in c[1][1]["text"], "애매하면 후보만 보여 주고 되묻기")

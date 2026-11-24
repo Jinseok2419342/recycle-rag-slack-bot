@@ -3,15 +3,15 @@
 > 코드가 실제로 어떻게 짜여 있는지를 그림으로 옮긴 문서입니다. 설계 이유와 규칙은 [SPEC.md](../SPEC.md), 사용 예는 [scenarios.md](scenarios.md).
 > 그림은 Mermaid 로 그렸습니다 (GitHub · VS Code 미리보기에서 그대로 보입니다).
 >
-> **숫자의 출처** — 청크 수(456 등)는 2026-11-13 에 `python build_index.py --check` 로 실제 PDF 를 돌려 얻은 값입니다.
-> 모델이 필요한 부분(임베딩 · 검색 품질 · 답 · 시간 · VRAM)은 **이 문서 작성 시점에 실행해 보지 못했습니다** — 그림은 코드의 흐름이지 측정 결과가 아닙니다.
+> **숫자의 출처** — 청크 수(456 등)는 `python build_index.py --check` 로 실제 PDF 를 돌려 얻은 값입니다.
+> 그림은 코드의 흐름입니다. 모델이 필요한 숫자(검색 · 답 · 사진 · 시간 · VRAM)의 실측은 [README](../README.md) 3번 · [CONTEXT](../CONTEXT.md) 부록에 있습니다.
 
 ## 목차
 
 1. [전체 구성](#1-전체-구성) — 무엇이 어디서 돌고 무엇과 통신하나
 2. [파일 구성과 의존 관계](#2-파일-구성과-의존-관계)
 3. [프로세스 ① 인덱스 만들기](#3-프로세스--인덱스-만들기-build_indexpy) (한 번 · 오프라인)
-4. [프로세스 ② 질문 1건 처리 — 흐름도](#4-프로세스--질문-1건-처리--흐름도-slack_rag_botpy) (슬랙 봇)
+4. [프로세스 ② 질문 1건 처리 — 흐름도](#4-프로세스--질문-1건-처리--흐름도-slack_rag_botpy) (슬랙 봇) · [4-1. 📷 사진 1장 처리](#4-1--사진-1장-처리-ask_photo)
 5. [검색기 내부](#5-검색기-내부--recycleretriever) — basic · multiquery · year 최신 우선
 6. [LangSmith 추적 구조](#6-langsmith-추적-구조)
 7. [프로세스 ③ 평가](#7-프로세스--평가-evaluatepy)
@@ -35,7 +35,8 @@ flowchart LR
         index[("index_recycle/<br/>FAISS 456청크<br/>+ manifest.json")]
         subgraph ollama["Ollama — 로컬 추론"]
             emb["KURE-v1<br/>임베딩 0.6GB"]
-            llm["A.X 4.0 Light 7B<br/>생성 4.4GB"]
+            llm["gemma4:e4b<br/>생성 (답)"]
+            vis["qwen3.5:4b<br/>사진 → 품목 이름"]
         end
         build["build_index.py<br/>적재 · 정리 · 분할 · 메타데이터"]
         pdf[/"data/ PDF 2건<br/>가이드라인 2018 · 사례집 2026"/]
@@ -43,9 +44,11 @@ flowchart LR
 
     langsmith["LangSmith<br/>프로젝트 recycle-bot-20241499"]
 
-    user -- "질문" --> slack
+    user -- "질문 · 📷 사진" --> slack
     slack == "WebSocket · 앱 토큰 xapp" ==> bot
-    bot -- "ask · search · ask_plain" --> brain
+    bot -- "사진 내려받기<br/>봇 토큰 · files:read" --> slack
+    bot -- "ask · search · ask_plain · ask_photo" --> brain
+    brain -- "사진 + 품목 목록" --> vis
     brain -- "질문 임베딩" --> emb
     brain -- "가까운 청크 + 거리" --> index
     brain -- "근거 + 질문" --> llm
@@ -56,17 +59,17 @@ flowchart LR
     build -- "청크 임베딩" --> emb
     build -- "저장" --> index
 
-    brain -. "질문 1건 = trace 1건" .-> langsmith
+    brain -. "질문 1건 = trace 1건<br/>사진은 «image N bytes» 로 가려서" .-> langsmith
     build -. "전처리 trace" .-> langsmith
 ```
 
 | 구성 요소 | 하는 일 | 필수 요건 |
 |---|---|---|
-| 슬랙 (입구 · 출구) | 채널 멘션 · DM 으로 받고 **같은 스레드에** 답 | 슬랙으로 묻고 슬랙으로 답한다 |
-| `slack_rag_bot.py` | 이벤트 수신 · 입력 검사 · 답 꾸미기 | `slack_bolt` Socket Mode |
-| `rag_backend.py` | 검색 → 근거를 붙여 생성 → 출처 만들기 | RAG · LangChain |
-| Ollama (KURE-v1 · A.X 4.0 Light) | 임베딩 · 생성 — 전부 로컬 | VRAM 8GB · 상용 API 상시 호출 없음 |
-| LangSmith | 검색 · 생성 · 전처리 추적 | LangSmith 추적 |
+| 슬랙 (입구 · 출구) | 채널 멘션 · DM 으로 글 · 사진을 받고 **같은 스레드에** 답 | 슬랙으로 묻고 슬랙으로 답한다 |
+| `slack_rag_bot.py` | 이벤트 수신 · 입력 검사 · 사진 내려받기 · 답 꾸미기 | `slack_bolt` Socket Mode |
+| `rag_backend.py` | (사진이면 품목 이름 붙이기 →) 검색 → 근거를 붙여 생성 → 출처 만들기 | RAG · LangChain |
+| Ollama (KURE-v1 · gemma4:e4b · qwen3.5:4b) | 임베딩 · 생성 · 사진 이름 붙이기 — 전부 로컬 · 셋이 함께 nvidia-smi 7.6 ~ 7.7GB | VRAM 8GB · 상용 API 상시 호출 없음 |
+| LangSmith | 검색 · 생성 · 사진 · 전처리 추적 | LangSmith 추적 |
 
 ---
 
@@ -79,10 +82,11 @@ flowchart TD
     config["config.py<br/>상수 · 경로 · RECYCLE_* 환경 변수<br/>LangSmith 프로젝트 지정"]
     faiss["faiss_io.py<br/>한글 경로에서 FAISS 저장 · 읽기<br/>10주차 것 그대로 복사"]
     build["build_index.py<br/>PDF 2건 → 청크 → 인덱스"]
-    rag["rag_backend.py<br/>search · ask · ask_plain · warmup"]
+    rag["rag_backend.py<br/>search · ask · ask_plain · ask_photo · warmup"]
     bot["slack_rag_bot.py<br/>슬랙 봇"]
     q["questions.py<br/>평가 문항 30개"]
-    ev["evaluate.py<br/>retrieval · answer 측정"]
+    ev["evaluate.py<br/>retrieval · answer · photo 측정"]
+    ph[/"photos/ 사진 24장<br/>문항 id 이름 · 범위 밖 out_*"/]
 
     build --> config
     build --> faiss
@@ -99,18 +103,19 @@ flowchart TD
     build == "만든다" ==> idx[("index_recycle/")]
     idx == "읽는다" ==> rag
     ev == "쓴다" ==> res[/"eval_results/ md · json"/]
+    ph -. "photo · prep-photos" .-> ev
 ```
 
 | 파일 | 줄 수 | 혼자 실행하면 |
 |---|---|---|
-| `config.py` | 63 | (실행 파일 아님) |
+| `config.py` | 111 | (실행 파일 아님) |
 | `build_index.py` | 618 | `--show` 청크 보기 · `--check` 수용 기준 검사 · 인자 없이 인덱스 생성 |
-| `rag_backend.py` | 347 | 터미널에서 질문 → 검색 결과 + 답 (슬랙 없이 RAG 만 확인) |
-| `slack_rag_bot.py` | 244 | 봇 시작 |
+| `rag_backend.py` | 659 | 터미널에서 질문 → 검색 결과 + 답 (슬랙 없이 RAG 만 확인) · `사진 photos/c2.jpg` 로 사진도 |
+| `slack_rag_bot.py` | 328 | 봇 시작 |
 | `questions.py` | 141 | 문항의 정답 위치가 실제 청크에 있는지 검사 |
-| `evaluate.py` | 299 | 검색 · 생성 점수표를 `eval_results/` 에 저장 |
+| `evaluate.py` | 483 | 검색 · 생성 · 사진 점수표를 `eval_results/` 에 저장 · `prep-photos` 로 사진 사본 만들기 |
 
-봇(입구 · 출구)과 두뇌(RAG)를 나눈 것은 10주차 구조 그대로입니다 — `slack_rag_bot.py` 는 `rag_backend` 의 함수 8개만 압니다.
+봇(입구 · 출구)과 두뇌(RAG)를 나눈 것은 10주차 구조 그대로입니다 — `slack_rag_bot.py` 는 `rag_backend` 의 이름 11개(함수 10 · 예외 1)만 압니다.
 
 ---
 
@@ -173,10 +178,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     ev["슬랙 이벤트<br/>app_mention 또는 message.im"]
-    ev --> dm{"DM 인데<br/>봇 메시지 또는 subtype ?"}
+    ev --> dm{"DM 인데 봇 메시지이거나<br/>file_share 가 아닌 subtype ?"}
     dm -- "예" --> ignore["무시<br/>자기 답에 다시 답하지 않음"]
     dm -- "아니오" --> thread["스레드 정하기<br/>thread_ts 가 있으면 그 스레드<br/>없으면 그 메시지 아래"]
-    thread --> parse["parse<br/>멘션 떼기 → 모드 · 질문"]
+    thread --> photo{"사진(image/*)이<br/>붙어 있나 ?"}
+    photo -- "예" --> ph["📷 사진 갈래 — 4-1"]
+    photo -- "아니오" --> parse["parse<br/>멘션 떼기 → 모드 · 질문"]
 
     parse --> empty{"질문이 비었나 ?"}
     empty -- "예" --> usage["사용법 안내"]
@@ -212,7 +219,34 @@ flowchart TD
 | 기본 | ⏳ → 답 + 📚 근거 (+ ℹ️) + 꼬리 줄 | 1회 (multiquery 면 2회) |
 | 검색 | 🔎 검색 결과 | 0회 (multiquery 면 1회) |
 | 비교 | 🙈 RAG 없이 → 📖 RAG 로 (메시지 2개) | 2회 |
+| 📷 사진 | 📷 → «…» 으로 봤어요 + 답 + 📚 근거 + 🔁 다른 후보 + 꼬리 줄 | 사진 모델 1회 + 생성 1회 |
 | 빈 멘션 · 300자 초과 | 안내 문구 | 0회 |
+
+### 4-1. 📷 사진 1장 처리 (`ask_photo`)
+
+사진은 **품목 이름을 붙이는 데만** 씁니다. 답은 글 질문과 똑같이 문서에서 근거 + 출처로 만듭니다 — 출처 없는 답을 만들지 않으려고.
+
+```mermaid
+flowchart TD
+    f["슬랙 사진 (멘션의 files · DM 의 file_share)<br/>여러 장이면 첫 장만"] --> big{"15MB 초과 ?"}
+    big -- "예" --> b1["✋ 15MB 이하로"]
+    big -- "아니오" --> dl["download<br/>url_private 를 봇 토큰으로 · files:read<br/>주소가 없으면 files.info"]
+    dl --> prep["prepare_image (Pillow)<br/>회전 정보 반영 · 긴 변 768px JPEG<br/>EXIF(촬영 위치) 버림"]
+    prep --> bad{"읽을 수 없는 형식 ?"}
+    bad -- "예" --> b2["✋ 사진을 읽지 못했습니다"]
+    bad -- "아니오" --> name["① describe-photo — qwen3.5:4b<br/>첫 줄: 무엇인지 설명<br/>둘째 줄: 문서 품목 이름 377개 중 하나 또는 모름"]
+    name --> snap["parse_label · snap_to_item<br/>마지막 줄 · 문장이면 품목 이름만"]
+    snap --> unk{"모름 ?"}
+    unk -- "예" --> u["📷 알아보지 못했어요 — 이름으로 물어 주세요"]
+    unk -- "아니오" --> ret["② RecycleRetriever<br/>검색어 = 이름 (+ 같이 쓴 글)"]
+    ret --> dec{"③ 확신 기준<br/>PHOTO_MAX_DIST · MIN_GAP"}
+    dec -- "넘음" --> ask["후보 3개만 보여 주고 되묻기"]
+    dec -- "통과 (기본: 기준 끔)" --> gen["④ generate — gemma4:e4b<br/>질문 = «이름 어떻게 버려요?»"]
+    gen --> out["📷 «이름» 으로 봤어요 — 틀리면 이름으로 다시<br/>답 + 📚 근거 + 🔁 다른 후보"]
+```
+
+- 확신 기준은 **기본으로 꺼 두었습니다** — 사진 실측에서 맞힌 사진과 범위 밖 사진의 1위 거리가 겹쳐(0.34 ~ 0.80 ↔ 0.62 ~ 0.64) 선을 그을 수 없었습니다. 대신 «📷 무엇으로 봤는지» 와 «🔁 다른 후보» 를 항상 보여 줍니다.
+- 사진 모델과 생성 모델이 다르면(기본) 봇 시작 때 둘 다 올립니다. 같게 주면(`RECYCLE_VISION_MODEL` = `RECYCLE_MODEL`) 한 모델이 둘 다 합니다.
 
 **입력 · 출력을 다루는 규칙** (슬랙 메시지와 문서 조각은 둘 다 «남이 쓴 입력» 입니다)
 
@@ -248,7 +282,8 @@ flowchart TD
 
 - **`year` 를 필터가 아니라 보정으로 한 이유** — 2018 가이드라인에만 있는 품목(핫팩 · 형광등 · 나무젓가락 …)이 많습니다. `year >= 2020` 으로 걸러 버리면 그 답을 잃습니다.
 - **알려진 부작용** — «뽁뽁이» 의 정답은 2018 문서(«비닐류로 배출»)인데, 2026 사례집에 **«은박 에어캡(뽁뽁이)» 라는 다른 품목**(«종량제봉투»)이 있습니다. `year_bonus` 가 크면 이쪽이 위로 올라옵니다.
-- 그래서 `strategy` 와 `year_bonus` 의 **기본값은 «아무것도 안 켠» 값(`basic` · `0`)** 이고, 평가(7번)로 효과를 확인한 뒤에만 바꿉니다.
+- 그래서 처음 기본값은 «아무것도 안 켠» 값(`basic` · `0`)이었고, 평가(7번)로 확인한 뒤 **`basic` · `year_bonus 0.09`** 로 정했습니다 —
+  검색 정답 수는 그대로(Top-3 23/24)이면서 연도 충돌 문항의 1위가 2026 문서인 수가 2/4 → 4/4 (CONTEXT 부록 D).
 
 ---
 
@@ -270,17 +305,31 @@ flowchart TD
     gen --> g3["StrOutputParser"]
 ```
 
+📷 사진 질문은 `recycle-photo` 한 trace 안에 ① 이름 붙이기 → ② 검색 → ④ 생성이 나란히 남습니다.
+
+```mermaid
+flowchart TD
+    p["recycle-photo<br/>tags: recycle-bot · photo · 전략<br/>metadata: model · vision_model · photo_mode<br/>photo(크기 · 바이트) · slack_user"]
+    p --> d["describe-photo<br/>입력: 지시문 + «image N bytes» (사진은 가림)<br/>출력: 설명 줄 + 품목 이름"]
+    d --> d1["ChatOllama — qwen3.5:4b"]
+    p --> r["RecycleRetriever<br/>검색어 = 붙인 이름"]
+    p --> g["generate"]
+    g --> g4["ChatOllama — gemma4:e4b"]
+```
+
 | trace 이름 | 언제 | 태그 |
 |---|---|---|
 | `recycle-rag` | 질문에 답할 때 | `recycle-bot` · `rag` · `basic` 또는 `multiquery` |
+| `recycle-photo` | 📷 사진으로 물을 때 | `recycle-bot` · `photo` · `basic` |
 | `recycle-plain` | 비교 모드의 «RAG 없이» | `recycle-bot` · `no-rag` |
 | `recycle-search` | 검색 모드 | `recycle-bot` · `search` |
 | `build-chunks` | 인덱스를 만들 때 (아래 `clean-pages` · `split-*`) | — |
 | (평가 실행) | `evaluate.py` | 위 태그 + `eval` |
 
 - 전처리 trace 에는 청크를 통째로 올리지 않고 **개수 · 평균 길이 · 최대 길이 · 표본 3개**만 올립니다.
+- **사진은 LangSmith 에 올리지 않습니다** — `Client(hide_inputs=redact_images)` 를 `tracing_context(client=…)` 로 넘겨, 자식 `ChatOllama` run 의 입력까지 사진(base64)을 «<image N bytes — 추적에 올리지 않음>» 으로 바꿔 보냅니다.
 - `--show` · `--check` 와 워밍업은 추적에 올리지 않습니다.
-- 가짜 모델로 trace 의 모양(이름 · 부모 자식 · 태그 · metadata)은 확인했고, **실제 LangSmith 화면으로는 아직 확인하지 못했습니다.**
+- trace 의 모양(이름 · 부모 자식 · 태그 · metadata)은 `tests/offline_check.py` 가 가짜 모델로 검사하고, 실제 화면은 README 4번 캡처로 확인합니다.
 
 ---
 
@@ -296,8 +345,10 @@ flowchart TD
     e1 --> e2["E2 검색 전략<br/>basic ↔ multiquery 3회 반복"]
     e2 --> e3["E3 year_bonus<br/>0 · 0.5g · 1g · 2g<br/>g = 1위와 3위 거리 차의 중앙값"]
     e3 --> e4["E4 프롬프트<br/>기존 ↔ 최근 근거를 따른다 한 줄 추가<br/>evaluate.py answer --prompt recent"]
+    e4 --> e5["E5 생성 모델<br/>gemma3:4b(수업 기본) ↔ 후보<br/>evaluate.py answer --model …"]
+    e5 --> e6["E6 사진<br/>photos/ 20장 + 범위 밖 4장<br/>evaluate.py photo --vision-model … --photo-mode …"]
 
-    e4 --> rule{"정답 수가<br/>실제로 늘었나 ?"}
+    e6 --> rule{"정답 수가<br/>실제로 늘었나 ?"}
     rule -- "예" --> adopt["config.py 기본값을 바꾼다<br/>근거 파일 이름을 주석에"]
     rule -- "같다 · 1~2문항 차이" --> keep["단순한 쪽을 유지<br/>효과 없었다고 적는다"]
     adopt --> doc["CONTEXT 부록 D · E 에 표로<br/>README 문구를 결과에 맞춤"]
@@ -308,8 +359,10 @@ flowchart TD
 |---|---|
 | 검색 Top-1 · Top-3 | 정답 위치 = (문서, 쪽, 그 청크에 있어야 할 글자). `chunk_id` 가 아니라서 분할 방식이 달라도 같은 잣대 |
 | 생성 정답 | `must` 중 하나 포함 **그리고** `bad` 없음 **그리고** 자기모순 아님 |
-| 자기모순 | 정답을 말한 뒤 «찾지 못했습니다» 를 덧붙임 (10주차 gemma3:4b 에서 2회 나온 현상) |
+| 자기모순 | 정답을 말한 뒤 «찾지 못했습니다» 를 덧붙임 (gemma3:4b 에서 30문항 중 11회 나온 현상) |
 | 범위밖 · 입력검증 | «찾지 못했습니다» 가 정답 |
+| 사진 적중 | 사진 파일 이름(문항 id)의 정답 위치가 검색 3위 안에 있나 — 글 질문과 같은 잣대 |
+| 사진 범위 밖 | `out_*` 사진에 «모름» · 되묻기 · «찾지 못했습니다» 면 정답 (엉뚱한 품목으로 답하면 오답) |
 
 ---
 
@@ -317,7 +370,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    a["ollama pull<br/>A.X · KURE"] --> b["build_index.py --check<br/>15항목 통과"]
+    a["ollama pull<br/>gemma4:e4b · qwen3.5:4b · KURE"] --> b["build_index.py --check<br/>15항목 통과"]
     b --> c["build_index.py<br/>인덱스 생성"]
     c --> d["rag_backend.py 질문<br/>터미널에서 답 확인"]
     d --> e["slack_rag_bot.py<br/>워밍업 → 슬랙 연결"]
