@@ -378,6 +378,11 @@ $env:PYTHONUTF8=1
 27. **작은 비전 모델은 지시문의 예시를 베낌** — `qwen3.5:0.8b` 는 예시 «건전지» 를 거의 모든 사진에, 목록에서 고르게 하면 첫 항목만 반복. 사진 지시문에 예시를 넣지 말 것(v2)
 28. **이 PC(2026-11-24)는 CLI `git push` 가 막힘**(GitHub 로그인 없음 · Credential Manager 가 창을 못 띄움) — 커밋은 CLI 로, push 는 사용자가 **GitHub Desktop 의 Push origin**.
     `main` 반영도 GitHub Desktop 에서(또는 사용자가 터미널에서 `git push origin photo-feature:main`)
+29. **수업 저장소의 루트 `.env` 를 복사하면 `LANGSMITH_AGENT_ID` · `LANGSMITH_AGENT_ENVIRONMENT`(7주차 «에이전트 주소» 실습)가 같이 옴** —
+    langsmith 0.16 은 프로젝트(`config.py` 가 정함)와 주소가 둘 다 있으면 `EnvAddressError` 로 **trace 를 버림**(콘솔에 «Error in RunCollectorCallbackHandler…» · 
+    `offline_check.py` 87번 줄 IndexError). → `config.py` 가 두 키를 `os.environ` 에서 지움 (2026-11-27 · SPEC 13-1 p). `.env` 는 고치지 않아도 됨
+30. **이 PC 는 초기화될 수 있음** — 2026-11-27 에 열어 보니 폴더가 새로 클론돼 있고 `venv` · 사례집 · `.env` · `captures_raw/` · 11-24 에 받은 모델 3개가 모두 없었음
+    (Ollama 에는 `gemma3:4b` · `exaone3.5:2.4b` 만). 세션 시작 때 `ollama list` · `Test-Path venv` 부터 보고, 없으면 README 5번 순서로 다시 준비
 
 ## 사용자 확인이 필요한 미결 사항 (SPEC 13장)
 

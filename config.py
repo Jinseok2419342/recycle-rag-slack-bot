@@ -15,6 +15,10 @@ from dotenv import load_dotenv
 load_dotenv()                                   # 저장소 맨 위의 .env (이 파일의 폴더부터 위로 올라가며 찾음)
 # ★ LangSmith 프로젝트는 여기서 정한다 — .env 에 넣지 않아도 되고, .env 를 다른 실습과 같이 써도 trace 가 안 섞임
 os.environ["LANGSMITH_PROJECT"] = os.getenv("RECYCLE_LANGSMITH_PROJECT", "recycle-bot-20241499")
+# ★ 수업 7주차 실습의 .env 를 복사해 오면 LANGSMITH_AGENT_ID · _ENVIRONMENT(«에이전트 주소»)가 같이 들어 있다.
+#    langsmith 0.16 은 프로젝트와 주소가 둘 다 있으면 EnvAddressError 로 trace 를 버린다 → 이 봇은 프로젝트만 쓴다 (2026-11-27 · 함정 29)
+for _key in ("LANGSMITH_AGENT_ID", "LANGSMITH_AGENT_ENVIRONMENT"):
+    os.environ.pop(_key, None)
 
 HERE = Path(__file__).resolve().parent
 DATA_DIR = HERE / "data"
