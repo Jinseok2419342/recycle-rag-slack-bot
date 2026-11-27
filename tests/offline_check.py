@@ -8,12 +8,13 @@
               → 가짜 임베딩은 글자 2-gram 해시라 검색 순위에는 의미가 없다. 흐름만 본다.
   인덱스와 평가 결과는 임시 폴더에 만들고 끝나면 지운다 (index_recycle/ · eval_results/ 를 건드리지 않는다).
 """
-import hashlib, json, os, sys, tempfile, warnings
+import hashlib, json, os, re, sys, tempfile, warnings
 warnings.filterwarnings("ignore")
 sys.stdout.reconfigure(encoding="utf-8")
 TMP = tempfile.mkdtemp(prefix="recycle_test_")
 os.environ.update({"RECYCLE_INDEX": os.path.join(TMP, "index_test"), "LANGSMITH_TRACING": "false",
-                   "RECYCLE_EMBED_MODEL": "fake-embed"})
+                   "RECYCLE_EMBED_MODEL": "fake-embed",
+                   "RECYCLE_MEMO_FILE": os.path.join(TMP, "memo.json")})   # MCP 메모도 임시 폴더에 (memo.json 을 건드리지 않게)
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT); os.chdir(ROOT)
 
@@ -43,14 +44,26 @@ class FakeChat(BaseChatModel):
     mode: str = "normal"
     label: str = "아이스팩"          # 사진이 들어오면 이 이름을 돌려준다 (가짜 비전 모델)
     rewrite: str = "보조배터리는 어떻게 버리나요?"   # 이어 묻기 풀어 쓰기 요청에 돌려줄 질문
+    tools_bound: list = []          # bind_tools 로 받은 도구 이름 (가짜 도구 고르기 모델)
+    pick: str = ""                  # 테스트가 억지로 고르게 할 도구 이름 (안전장치 확인용)
     @property
     def _llm_type(self): return "fake"
+    def bind_tools(self, tools, **kw): return self.model_copy(update={"tools_bound": [t.name for t in tools]})
     def _generate(self, messages, stop=None, run_manager=None, **kw):
         if self.mode == "boom": raise RuntimeError("connection refused http://127.0.0.1:11434 C:\\secret\\path")
+        if self.tools_bound:                         # 📝 메모 도구 고르기 — 말에 따라 도구 하나
+            q = str(messages[-1].content)
+            name = self.pick or ("delete_memo" if "지워" in q else "show_memos" if "보여" in q else "add_memo")
+            num = re.search(r"\d+", q)
+            args = {"delete_memo": {"memo_id": int(num.group()) if num else 1}, "show_memos": {},
+                    "add_memo": {"text": q.split(" ", 1)[1] if " " in q else q}}[name]
+            call = {"name": name, "args": args, "id": "call_1", "type": "tool_call"}
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="", tool_calls=[call]))])
         if any(isinstance(m.content, list) and any(p.get("type") == "image_url" for p in m.content) for m in messages):
             return ChatResult(generations=[ChatGeneration(message=AIMessage(content=self.label))])
         text = "\n".join(m.content for m in messages)
         if "앞 대화 없이도 이해되는" in text: out = self.rewrite + "\n(설명 줄은 버려져야 함)"
+        elif "도구 실행 결과" in text: out = "알림: " + text.split("도구 실행 결과:\n", 1)[1].split("\n")[0]
         elif "검색 질문 3개" in text: out = "1. 에어캡 배출 방법\n- 완충재 비닐류 배출\n포장재 분리배출"
         elif "<근거>" in text:
             q = text.rsplit("질문:", 1)[1]
@@ -236,6 +249,38 @@ run("<@UBOT>", ts="400.0", files=[{"id": "F1", "mimetype": "image/png", "size": 
 c4 = run("<@UBOT> 그럼 그거 뚜껑은?", ts="400.5", thread_ts="400.0")
 T(s.history_of("C1-400.0")[0][0] == "사진 속 물건 «아이스팩» 은 어떻게 버려요?" and "«아이스팩 뚜껑은 어떻게 버리나요?»" in c4[1][1]["text"], "사진 다음에도 이어 묻기")
 s.download = orig_download; rb.get_llm().rewrite = "보조배터리는 어떻게 버리나요?"; s._memory.clear()
+
+print("== 📝 MCP 메모 (memo_agent → 실제 mcp_server.py 를 자식 프로세스로 · 메모 파일은 임시 폴더) ==")
+import memo_agent as ma
+from pathlib import Path as _P
+memo_file = _P(os.environ["RECYCLE_MEMO_FILE"])
+T(ma.MEMO_FILE == memo_file and ma.list_tools() == ["add_memo", "delete_memo", "show_memos"], f"MCP 서버 도구 3개: {ma.list_tools()}")
+with collect_runs() as cb: m1 = ma.ask_memo("메모 재활용은 목요일 저녁 7시 이후", {"slack_user": "U1"})
+root = cb.traced_runs[0]; kids = [c.name for c in root.child_runs]
+T(m1["calls"][0]["name"] == "add_memo" and m1["calls"][0]["ran"] and "1번 메모를 저장" in m1["calls"][0]["result"]
+  and "목요일" in memo_file.read_text(encoding="utf-8"), "add_memo → MCP 서버가 메모 파일에 저장")
+T(root.name == "recycle-memo" and "mcp" in root.tags and kids[0] == "pick-tool" and "tool-answer" in kids
+  and root.extra["metadata"]["slack_user"] == "U1", f"trace 1건: {root.name} → {kids}")
+m2 = ma.ask_memo("메모 보여줘")
+T(m2["calls"][0]["name"] == "show_memos" and m2["answer"].startswith("📋") and "1. 재활용은 목요일" in m2["answer"], "show_memos → 목록을 그대로 (모델을 거치지 않음)")
+T(ma.make_llm() is not ma.make_llm() and isinstance(ma.make_llm(), FakeChat), "메모 갈래는 질문마다 새 모델 객체 (닫힌 이벤트 루프에 묶이지 않게 · 함정 31)")
+real_make = ma.make_llm; ma.make_llm = lambda: FakeChat(pick="delete_memo"); m3 = ma.ask_memo("메모 1번 뭐였지?"); ma.make_llm = real_make
+T(not m3["calls"][0]["ran"] and "지우라는 말이 없어" in m3["calls"][0]["result"] and "목요일" in memo_file.read_text(encoding="utf-8"),
+  "안전장치: «지워 · 삭제» 가 없는 delete_memo 는 실행 안 함 (메모 그대로)")
+m4 = ma.ask_memo("1번 지워줘")
+T(m4["calls"][0]["name"] == "delete_memo" and m4["calls"][0]["ran"] and "지웠습니다" in m4["calls"][0]["result"]
+  and json.loads(memo_file.read_text(encoding="utf-8")) == [], "delete_memo («메모» 를 빼먹어도 붙여서 처리)")
+T(s.parse("<@U1> 메모 보여줘") == ("memo", "보여줘") and s.parse("메모장 사용법") == ("rag", "메모장 사용법"), "parse 메모 / «메모장» 은 모드가 아님")
+c = run("<@UBOT> 메모 음식물은 매일 아파트 뒤", ts="500.0")
+T([k for k, _ in c] == ["post", "update"] and c[0][1]["text"] == s.MEMO_HOLDER and "🔧 *MCP 도구* `add_memo(" in c[1][1]["text"]
+  and "_— mcp · " in c[1][1]["text"] and c[0][1]["thread_ts"] == "500.0", "슬랙 메모: 📝 자리 → 답 + 🔧 부른 도구 + 꼬리 줄 · 같은 스레드")
+print("     ", c[1][1]["text"].replace("\n", " ⏎ ")[:200])
+c = run("<@UBOT> 메모", ts="501.0"); T("show_memos" in c[1][1]["text"] and "음식물은 매일" in c[1][1]["text"], "빈 «메모» → 보여 주기")
+T("메모" in s.NOT_FOUND_TEXT and "구청" in s.NOT_FOUND_TEXT, "찾지 못함 안내에 «메모로 남겨 두기» 안내")
+real_ask_memo = ma.ask_memo
+def _boom_memo(*a, **k): raise RuntimeError("MCP boom C:\\secret\\path")
+ma.ask_memo = _boom_memo; c = run("<@UBOT> 메모 보여줘", ts="502.0"); ma.ask_memo = real_ask_memo
+T(c[1][1]["text"] == s.FAIL_TEXT and "secret" not in c[1][1]["text"], "메모 오류: 슬랙엔 일반 문구만")
 
 print("== slack 사진 ==")
 from unittest import mock

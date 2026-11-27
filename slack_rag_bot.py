@@ -5,6 +5,7 @@
     @버릴지도 비교 마트 영수증 종이로 버려도 돼?    → RAG 없이 vs RAG 로 — 나란히 본다
     (DM) 핫팩은?                                → 멘션 없이 1:1 로도 같은 방식
     (같은 스레드) @버릴지도 그럼 그거 뚜껑은?      → 🔗 스레드마다 앞 대화를 기억해 «그거» 를 풀어 쓴 뒤 찾아 답
+    @버릴지도 메모 재활용은 목요일 저녁           → 📝 MCP 도구(mcp_server.py)로 우리 동네 메모 저장 · 보기 · 지우기 (memo_agent.py)
     @버릴지도 + 사진 (DM 은 사진만)               → 📷 사진에 품목 이름을 붙이고 → 그 이름으로 문서에서 찾아 답
                                                   (슬랙 앱 봇 토큰에 files:read 권한이 있어야 사진을 받는다)
 
@@ -60,6 +61,9 @@ from rag_backend import (  # noqa: E402
 from collections import OrderedDict  # noqa: E402
 from threading import Lock  # noqa: E402
 
+# 📝 MCP 도구 갈래 — «메모 …» 로 시작하는 질문만 (RAG 경로와 따로)
+import memo_agent  # noqa: E402
+
 SEARCH_WORDS = ("검색", "search")
 COMPARE_WORDS = ("비교", "vs")
 MODEL_SHORT = config.short_model()
@@ -72,6 +76,7 @@ USAGE = (
     "• `@버릴지도 비교 마트 영수증 종이로 버려도 돼?` — 문서 없이 답한 것과 나란히\n"
     "• 📷 이름을 모르면 사진을 올리며 `@버릴지도` — 사진 속 물건 이름으로 문서에서 찾아 답합니다\n"
     "• 🔗 같은 스레드에서는 `@버릴지도 그럼 그거 뚜껑은?` 처럼 이어서 물어도 앞 대화로 알아듣습니다\n"
+    "• 📝 `@버릴지도 메모 재활용은 목요일 저녁` · `메모 보여줘` · `메모 2번 지워줘` — 문서에 없는 우리 동네 배출 요일 · 장소를 남겨 둡니다 (MCP 도구)\n"
     "• DM 으로는 멘션 없이 `핫팩은?` 처럼 바로 묻거나 사진만 보내도 됩니다"
 )
 HOLDER = "⏳ 분리배출 문서에서 찾는 중…"
@@ -79,7 +84,9 @@ PHOTO_HOLDER = "📷 사진을 보고 문서에서 찾는 중…"
 PHOTO_UNKNOWN = ("📷 사진에서 버릴 물건을 알아보지 못했어요 — 물건 이름으로 물어봐 주세요. "
                  "(예: `@버릴지도 아이스팩 어떻게 버려?`)")
 NOT_FOUND_TEXT = (f"{NOT_FOUND} — 지역별 배출 요일 · 수수료처럼 지자체마다 다른 내용은 "
-                  "거주지 구청(주민센터)에 확인하세요.")
+                  "거주지 구청(주민센터)에 확인하세요.\n"
+                  "📝 확인한 우리 동네 요일 · 장소는 `@버릴지도 메모 <내용>` 으로 남겨 두면 `@버릴지도 메모 보여줘` 로 다시 볼 수 있어요.")
+MEMO_HOLDER = "📝 메모 도구(MCP)를 부르는 중…"
 MIXED_NOTE = ("ℹ️ 2018 가이드라인과 2026 사례집이 함께 근거로 쓰였습니다 — "
               "내용이 다르면 최신인 사례집(2026)을 따르세요.")
 FAIL_TEXT = "⚠️ 답을 만들지 못했습니다. 잠시 뒤 다시 물어봐 주세요."
@@ -124,6 +131,8 @@ def parse(text: str) -> tuple[str, str]:
         return "search", rest.strip()
     if first.lower() in COMPARE_WORDS:
         return "compare", rest.strip()
+    if first.lower() in memo_agent.MEMO_WORDS:
+        return "memo", rest.strip()
     return "rag", text
 
 
@@ -165,6 +174,16 @@ def search_text(question: str, meta: dict) -> str:
         preview = escape(doc.page_content[:80].replace("\n", " "))
         via = f"\n> ↳ 검색 질문: {escape(m['via'])}" if m["via"] != question else ""
         lines.append(f"{i}. `{m['distance']:.3f}` *{escape(source_of(doc))}*\n> {preview}…{via}")
+    return "\n".join(lines)
+
+
+def memo_text(out: dict) -> str:
+    """📝 답 + 🔧 실제로 부른 MCP 도구(이름 · 인자) + 꼬리 줄 — «도구 호출이 실제로 일어났나» 가 슬랙에서 보이게."""
+    lines = [to_mrkdwn(out["answer"])]
+    for c in out["calls"]:
+        args = ", ".join(f"{k}={v!r}" for k, v in c["args"].items())
+        lines.append(f"🔧 *MCP 도구* `{escape(c['name'])}({escape(args)})`" + ("" if c["ran"] else " — 실행 안 함"))
+    lines.append(f"_— mcp · {MODEL_SHORT} · {out['sec']:.1f}초_")
     return "\n".join(lines)
 
 
@@ -254,6 +273,22 @@ def answer(event: dict, client) -> None:
             text = f"✋ {e}"
         except Exception as e:
             log_fail("photo", e)
+            text = FAIL_TEXT
+        client.chat_update(channel=channel, ts=holder["ts"], text=text)
+        return
+
+    # ── 📝 메모 — MCP 도구 갈래 (RAG 를 거치지 않음 · 원문 그대로) ──
+    if mode == "memo":
+        if len(question) > MAX_QUESTION:
+            post(f"✋ 질문은 {MAX_QUESTION}자 이내로 부탁드립니다. (지금 {len(question)}자)")
+            return
+        holder = post(MEMO_HOLDER)
+        try:
+            out = memo_agent.ask_memo("메모 " + (question or "보여줘"), meta)
+            text = memo_text(out)
+            print(f"  답함 → {out['sec']:.1f}초  MCP {[(c['name'], c['args'], c['ran']) for c in out['calls']]}")
+        except Exception as e:
+            log_fail("memo", e)
             text = FAIL_TEXT
         client.chat_update(channel=channel, ts=holder["ts"], text=text)
         return
@@ -356,6 +391,11 @@ def main() -> None:
             "              ③ python rag_backend.py 검색 \"뽁뽁이\" 가 되나"
         )
     print(f"워밍업 ✅ {sec:.1f}초")
+    # 📝 MCP 서버가 뜨는지 확인 — 실패해도 봇은 켠다 (메모만 안 되고 RAG 는 그대로 · 기준 코드 «MCP 가 막혀도 RAG 봇은 남는다»)
+    try:
+        print(f"MCP 도구  : {' · '.join(memo_agent.list_tools())}  ({memo_agent.MCP_SERVER.name} · 메모 {memo_agent.MEMO_FILE.name})")
+    except Exception as e:
+        print(f"⚠️ MCP 서버를 띄우지 못했습니다 — 메모 기능만 꺼짐, RAG 는 그대로 ({type(e).__name__}: {e})")
 
     app = build_app(bot_token)
     print("슬랙에서 @버릴지도 질문 / 검색 질문 / 비교 질문 / 📷 사진.  끝낼 때는 Ctrl+C")

@@ -35,6 +35,7 @@
     python rag_backend.py 비교 "마트 영수증은 종이로 버려도 돼?"    # RAG 없이 vs RAG 로
     python rag_backend.py 사진 photos/c2.jpg                     # 사진으로 (뒤에 글을 덧붙이면 힌트)
     python rag_backend.py 대화 "건전지 어떻게 버려?" "그럼 그거 …"  # 같은 스레드처럼 이어 묻기 (질문 없이 주면 직접 입력)
+                                                                 # «메모 …» 로 시작하는 줄은 📝 MCP 도구 갈래 (memo_agent.py)
     python rag_backend.py --strategy multiquery --year-bonus 0.05 "생수병은 어떻게 버려요?"
 """
 
@@ -150,10 +151,17 @@ def get_store():
     return store
 
 
-@lru_cache(maxsize=1)
-def get_llm() -> ChatOllama:
+def new_llm() -> ChatOllama:
+    """캐시하지 않은 생성 모델 — 📝 메모(MCP) 갈래가 질문마다 새로 만든다.
+    ⚠️ 그 갈래는 질문마다 asyncio.run 으로 새 이벤트 루프를 여는데, 캐시한 모델의 비동기 연결은 첫 루프에 묶여
+       두 번째 질문부터 «Event loop is closed» 가 난다 (2026-11-27 실제로 겪음 · 함정 31)."""
     return ChatOllama(model=MODEL, temperature=TEMPERATURE, num_predict=MAX_OUT, num_ctx=NUM_CTX,
                       keep_alive=KEEP_ALIVE, reasoning=REASONING)       # 근거대로 — 온도를 낮춘다
+
+
+@lru_cache(maxsize=1)
+def get_llm() -> ChatOllama:
+    return new_llm()
 
 
 @lru_cache(maxsize=1)
@@ -665,6 +673,20 @@ def main_chat(questions: list[str], strategy: str, year_bonus: float) -> None:
         if not q:
             break
         turn += 1
+        if q.split(" ", 1)[0].lower() in ("메모", "memo"):         # 📝 MCP 도구 갈래 — 슬랙과 같은 앞말
+            import memo_agent                                       # 여기서 불러온다 (memo_agent 가 이 파일을 import 함)
+            try:
+                mo = memo_agent.ask_memo(q, {"source": "terminal"})
+            except Exception as e:
+                print(f"[MCP] 실패 — {type(e).__name__}: {e}")
+                continue
+            print(f"\n[{turn}] 질문 : {q}")
+            print(f"    경로 : MCP {memo_agent.MCP_SERVER.name} → pick-tool(gemma4 도구 고르기) → "
+                  f"{' · '.join(c['name'] for c in mo['calls']) or '(도구 없음)'}  ({mo['sec']:.1f}초)")
+            for c in mo["calls"]:
+                print(f"    🔧 {memo_agent.call_line(c)}")
+            print(f"    답   : {mo['answer']}")
+            continue
         try:
             out = ask_full(q, {"source": "terminal"}, strategy, year_bonus, history=history)
         except Exception as e:

@@ -1,7 +1,7 @@
 # 버릴지도 — 분리배출 안내 RAG 슬랙 봇
 # 버전은 고정하지 않는다 (수업 저장소 관례 · pypdf 만 예외 — 아래). 확인된 버전은 README 5번 «확인된 환경».
 
-langchain
+langchain[mcp]        # 📝 MCP 도구 — langchain.mcp.MCPAdapter + fastmcp (13주차 기준 코드와 같음 · 2026-11-27 추가 · fastmcp 4.2.6 에서 확인)
 langchain-core
 langchain-community
 langchain-ollama

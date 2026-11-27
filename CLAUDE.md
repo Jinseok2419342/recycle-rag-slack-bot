@@ -15,7 +15,10 @@
 
 **상태: 채점 기준이 바뀜(13주차 «최종 제출 안내» 0절 · 11-25 변경) → 🔗 이어 묻기 구현 · 테스트표 · 문서를 새 기준으로 고침 (작업 브랜치 `photo-feature`).
 ✅ 캡처 3종(`captures/` · 2026-11-27 사용자 촬영 · 확인함) · CONTEXT 부록 F 새로 씀.
-남은 것 = ① MCP 도구 1개(권장 · 사용자 결정: 이어 묻기 다음에) ② `main` 반영(GitHub Desktop) · 사용자가 최종 보고서에 저장소 링크 ③ `docs/` 옛 캡처 4장 삭제 여부(사용자 확인).**
+✅ 추가 자료 캡처(`docs/` slack-compare · slack-photo · trace-rag · trace-retriever · trace-photo — 지금 모델로 다시 찍음) · `main` 반영(사용자 GitHub Desktop).
+✅ **📝 MCP 도구** (2026-11-27 · SPEC 13-1 r · CONTEXT 부록 I): `mcp_server.py` + `memo_agent.py` · 슬랙 `메모` 앞말 · `offline_check` 96항목 · 실제 모델 도구 고르기 11/11.
+남은 것 = ① 캡처 ② 를 «메모» 줄까지 넣어 다시 찍기(사용자) · (선택) 슬랙 메모 화면 ② 커밋 → `main`(GitHub Desktop) · 사용자가 최종 보고서에 저장소 링크.
+`docs/slack-thread.png`(옛 모델 화면 · README 에서 안 씀)는 **지우지 않음**(사용자 결정 2026-11-27 «상관없다»).**
 마감 **12/4(14주차) 3교시 전** · 제출처는 추후 공지.
 
 - **새 채점 기준 (2026-11-25 변경 · 원본은 사용자가 저장소 맨 위에 둔 `[13주차]학생용_미니프로젝트_최종제출_안내.html` — 수업 자료라 커밋 안 함)**
@@ -238,7 +241,9 @@ recycle-rag-slack-bot/             ← git 저장소 맨 위 (github.com/Jinseok
 ├── faiss_io.py                    ← 수업 저장소 11-06/faiss_io.py 를 그대로 복사 (한글 경로 대비 · 수정 금지)
 ├── build_index.py                 ← PDF 2건 → 정리 → 구역별 구조 분할 → 메타데이터 → FAISS
 ├── rag_backend.py                 ← 검색기(RecycleRetriever) · ask · ask_plain · search · source_of · warmup · 📷 ask_photo · redact_images
-├── slack_rag_bot.py               ← Socket Mode 봇 (입구 · 출구 · 사진 내려받기)
+├── slack_rag_bot.py               ← Socket Mode 봇 (입구 · 출구 · 사진 내려받기 · 🔗 스레드 기억 · 📝 메모 갈래)
+├── mcp_server.py                  ← 📝 MCP 서버 (FastMCP · show_memos · add_memo · delete_memo → memo.json · gitignore) — 2026-11-27
+├── memo_agent.py                  ← 📝 MCP 도구 갈래 (MCPAdapter · gemma4 bind_tools · 왕복 1번) — 2026-11-27
 ├── questions.py                   ← 평가 문항 30개 (+ 자기 검사)
 ├── evaluate.py                    ← retrieval | answer | photo | prep-photos → eval_results/
 ├── requirements.txt · .env.example
@@ -418,6 +423,9 @@ $env:PYTHONUTF8=1
 29. **수업 저장소의 루트 `.env` 를 복사하면 `LANGSMITH_AGENT_ID` · `LANGSMITH_AGENT_ENVIRONMENT`(7주차 «에이전트 주소» 실습)가 같이 옴** —
     langsmith 0.16 은 프로젝트(`config.py` 가 정함)와 주소가 둘 다 있으면 `EnvAddressError` 로 **trace 를 버림**(콘솔에 «Error in RunCollectorCallbackHandler…» · 
     `offline_check.py` 87번 줄 IndexError). → `config.py` 가 두 키를 `os.environ` 에서 지움 (2026-11-27 · SPEC 13-1 p). `.env` 는 고치지 않아도 됨
+31. **메모(MCP) 갈래에서 캐시한 생성 모델을 쓰면 두 번째 질문부터 «Event loop is closed»** — 질문마다 `asyncio.run` 으로 새 루프를 여는데
+    `get_llm()`(lru_cache)의 비동기 연결이 첫 루프에 묶임 → `memo_agent.make_llm()` 이 질문마다 `rag_backend.new_llm()`. 가짜 모델엔 연결이 없어 offline_check 로는 안 잡힘 (2026-11-27)
+32. **MCP 서버의 «INFO Starting MCP server» 는 stderr** — PowerShell 백그라운드 실행에서 `NativeCommandError` 로 감싸져 보이지만 정상
 30. **이 PC 는 초기화될 수 있음** — 2026-11-27 에 열어 보니 폴더가 새로 클론돼 있고 `venv` · 사례집 · `.env` · `captures_raw/` · 11-24 에 받은 모델 3개가 모두 없었음
     (Ollama 에는 `gemma3:4b` · `exaone3.5:2.4b` 만). 세션 시작 때 `ollama list` · `Test-Path venv` 부터 보고, 없으면 README 5번 순서로 다시 준비
 

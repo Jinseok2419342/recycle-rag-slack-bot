@@ -1,7 +1,8 @@
 # 버릴지도 — 슬랙에서 묻는 분리배출 안내 봇 (RAG)
 
 > **«뽁뽁이는 어떻게 버려요?»** 라고 슬랙에 묻거나 **사진을 올리면**, 환경부 가이드라인과 2026 분리배출 Q&A 사례집에서
-> 근거를 찾아 **배출 방법과 출처(문서 · 쪽 · 품목)** 를 함께 답합니다. 같은 스레드에서는 **«그럼 깨진 건?»** 처럼 이어서 물어도 됩니다.
+> 근거를 찾아 **배출 방법과 출처(문서 · 쪽 · 품목)** 를 함께 답합니다. 같은 스레드에서는 **«그럼 깨진 건?»** 처럼 이어서 물어도 되고,
+> 문서에 없는 **우리 동네 배출 요일**은 `메모` 로 남겨 두었다가 다시 볼 수 있습니다(📝 MCP 도구).
 >
 > 숫자는 모두 **실제로 돌려서 잰 값**입니다(RTX 3070 8GB · 마지막 측정 2026-11-27).
 > 요구사항 명세 · 실측 기록 → [CONTEXT.md](CONTEXT.md) · 평가 원본 → [eval_results/](eval_results/) ·
@@ -49,7 +50,8 @@
 | **📷 사진 + `@버릴지도`** (DM 은 사진만) | 사진 속 물건에 **문서의 품목 이름**을 붙이고 → 그 이름으로 찾아 답 + 📚 근거 + «📷 무엇으로 봤는지» + 🔁 다른 후보 |
 | `@버릴지도 검색 뽁뽁이` | 어떤 근거가 뽑혔는지만 보여 줌 — 거리 · 문서 · 쪽 (LLM 호출 없음 · 즉시) |
 | `@버릴지도 비교 마트 영수증 종이로 버려도 돼?` | **RAG 없이** 답한 것과 **RAG 로** 답한 것을 나란히 — 모델이 지어내는지 바로 보임 |
-| `@버릴지도 강남구 재활용 요일?` | 문서에 없는 질문 → **«자료에서 찾지 못했습니다 — 거주지 구청에 확인하세요»** (지어내지 않음) |
+| `@버릴지도 강남구 재활용 요일?` | 문서에 없는 질문 → **«자료에서 찾지 못했습니다 — 거주지 구청에 확인하세요»** (지어내지 않음) + «📝 확인한 요일은 `메모 …` 로 남겨 두세요» |
+| `@버릴지도 메모 재활용은 목요일 저녁 7시 이후` · `메모 보여줘` · `메모 2번 지워줘` | 📝 **MCP 도구**로 우리 동네 분리배출 메모를 저장 · 보기 · 지우기 + «🔧 MCP 도구 `add_memo(text=…)`» 로 실제로 부른 도구 표시 |
 | `@버릴지도` (내용 없음) | 사용법 안내 |
 | 봇에게 **DM** 으로 `핫팩은?` | 멘션 없이 1:1 로 물어도 같은 방식으로 답 (`message.im` 이벤트) |
 
@@ -199,16 +201,27 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0    # 임베딩 0.6 GB
   | `python build_my_index.py --show` — 청크 수 · metadata | `python build_index.py --show` — 구역별 청크 수 · 출처 metadata | ① |
   | `python build_my_index.py` — `my_data/` → `index_my/` | `python build_index.py` — `data/*.pdf` 2건 → `index_recycle/` | |
   | `bot_config.py` — 주제 · 문서 이름 · 인덱스 · 출처 표시 | `config.py`(모델 · 인덱스 · 검색 값) · `rag_backend.py`(프롬프트 · `source_of` 출처 표시) | |
-  | `python bot_graph.py --no-mcp` — 터미널에서 같은 스레드 대화 · 경로 · 📚 근거 | `python rag_backend.py 대화 "…" "그럼 …"` — 같은 스레드 대화 · 경로 · 📚 근거 | ② |
-  | `python slack_agent_bot.py --no-mcp` | `python slack_rag_bot.py` | ③ |
+  | `python bot_graph.py` — 터미널에서 같은 스레드 대화 · 경로 · 📚 근거 · MCP 도구 호출 | `python rag_backend.py 대화 "…" "그럼 …" "메모 …"` — 같은 스레드 대화 · 경로 · 📚 근거 · 📝 MCP 도구 호출 | ② |
+  | `python slack_agent_bot.py` | `python slack_rag_bot.py` (시작할 때 «MCP 도구 : add_memo · delete_memo · show_memos») | ③ |
   | `contextualize` · `FOLLOW_UP` · 체크포인터 `thread_id = 채널-스레드ts` | `rag_backend.contextualize_run` · `FOLLOW_UP` · `slack_rag_bot` 의 스레드 기억(키 = 채널-스레드ts) | ③ |
-  | classify → search → grade → rewrite (Agentic RAG) | 쓰지 않음 — 검색 1번 + «찾지 못했습니다» 처리 (선택 기능 · 점수 없음) | |
+  | `mcp_server.py` — `@mcp.tool` 메모 도구 3개 (FastMCP · stdio) | `mcp_server.py` — `@mcp.tool` **우리 동네 분리배출 메모** 3개(`show_memos` · `add_memo` · `delete_memo`) | ② |
+  | `tool_agent`(llama3.2:3b · `bind_tools`) → `tools`(ToolNode) → `tool_answer` · `MAX_TOOL_ROUNDS` | `memo_agent.py` — `pick-tool`(**gemma4:e4b** · `bind_tools`) → MCP 도구 → `tool-answer` · 왕복 1번 | ② |
+  | `DANGEROUS` + `interrupt`(승인) | 승인 대신 «지워 · 삭제» 말 검사 — 말이 없으면 `delete_memo` 를 실행하지 않음 (승인은 선택 기능) | |
+  | classify(학칙 / 도구 / 도움말 / 일반) | LLM 분류 대신 **앞말**로 가름 — `메모 …` 만 도구 갈래, 나머지는 RAG (지금의 `검색` · `비교` 와 같은 방식) | |
+  | search → grade → rewrite (Agentic RAG) | 쓰지 않음 — 검색 1번 + «찾지 못했습니다» 처리 (선택 기능 · 점수 없음) | |
 - **처리 방식: RAG** ★ 필수 → 고른 이유:
   - 답이 **고정된 공식 문서**에 있고, 분리배출은 틀리면 재활용이 안 되므로 **출처가 핵심**입니다(1교시 «출처 추적이 결정적인 이유»).
   - 기준이 **바뀝니다**(2018 가이드라인에는 «무색페트병» 이 한 번도 안 나옴 → 2026 사례집에 있음). 파인튜닝이 아니라 **문서 교체**로 따라갑니다.
   - 사진도 같은 RAG 앞에 «이름 붙이기» 한 단계를 더할 뿐입니다 — 사진만 보고 배출 방법을 말하게 하면 출처 없는 답이 됩니다.
-  - MCP(도구 호출)는 아직 없습니다 — 답은 문서 안에 있어 필수 요건은 RAG 로 채웁니다. 11-25 기준의 «MCP 도구 1개 이상(권장)» 은
-    생성 모델 gemma4:e4b 가 도구 호출을 지원해(수업 기본 gemma3:4b 는 미지원) 모델을 더 올리지 않고 붙일 수 있어 다음 작업으로 진행합니다.
+- **📝 MCP 도구 (11-25 기준 «MCP 도구 1개 이상» · 권장)** — `@버릴지도 메모 …` 로 시작하는 질문만 이 갈래로 갑니다.
+  - **왜 이 도구인가**: 분리배출 문서에는 «우리 동네 배출 요일 · 시간 · 장소 · 수수료» 가 없어(지자체마다 다름) 봇은 «찾지 못했습니다 — 구청에 확인하세요» 라고 답합니다.
+    사용자가 확인한 내용을 **MCP 도구로 남겨 두고 다시 보게** 합니다 — 문서에 있는 것은 RAG, 문서 밖의 «우리 동네» 것은 도구. «찾지 못했습니다» 답 아래에 메모 남기는 법을 안내합니다.
+  - **구조** (13주차 기준 코드와 같은 모양): `mcp_server.py`(FastMCP · `@mcp.tool` 3개 · `memo.json`) ⇄ stdio ⇄ `memo_agent.py`(`langchain.mcp.MCPAdapter` → `bind_tools` → 도구 실행 → 결과 알리기)
+  - **도구 고르는 모델 = 생성 모델 gemma4:e4b 그대로** — `ollama show gemma4:e4b` 에 `tools` 가 있음. 기준 코드는 gemma3:4b 가 도구 호출을 못 해(400) llama3.2:3b 를 따로 올렸지만,
+    이 봇은 **모델을 더 올리지 않습니다**(VRAM 7.6 ~ 7.7GB 그대로).
+  - **앞말로 가르는 이유**: LLM 이 «문서 질문인가 · 도구 질문인가» 를 분류하게 하면 분리배출 질문이 도구 쪽으로 잘못 갈 수 있습니다. `메모` 로 시작할 때만 도구 갈래로 보내
+    **RAG 경로(30문항 29/30)는 한 줄도 바뀌지 않습니다**.
+  - 실측(2026-11-27 · gemma4:e4b · 두 번 실행): 저장 · 보기 · «1번 뭐였지?» · 지우기 **11 / 11 번 모두 맞는 도구 · 맞는 인자**, 한 번에 3.5 ~ 4.6초 (CONTEXT 부록 I)
 - **LangChain**:
 
   | 단계 | 구성요소 |
@@ -221,6 +234,7 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0    # 임베딩 0.6 GB
   | ⓪ 사진 | `HumanMessage([text, image_url(data URI)])` `\|` `ChatOllama(qwen3.5:4b)` `\|` `StrOutputParser` — 지시문에 문서 품목 이름 377개(인덱스의 `item` metadata) |
   | ⑤ Retrieve | `RecycleRetriever`(`BaseRetriever` 상속) — 후보 10개 → `year >= 2020` 이면 거리 − 0.09 → 상위 3개. MultiQuery 는 비교 후 미채택(6번) |
   | ⑥ Generate | `ChatPromptTemplate`(`<근거>` 구분자) `\|` `ChatOllama(gemma4:e4b, reasoning=False)` `\|` `StrOutputParser` — **LCEL** |
+  | 📝 MCP | `langchain.mcp.MCPAdapter(PythonStdioTransport("mcp_server.py"))` → `list_tools()` → `ChatOllama(gemma4:e4b).bind_tools(도구)` → `tool.ainvoke(tool_call)` → 결과를 `ChatPromptTemplate \| ChatOllama \| StrOutputParser` 로 알림 |
 
 - **LangSmith** (선택 — 11-25 에 요건에서 빠졌지만 켜 두고 씀 · `.env` 의 `LANGSMITH_TRACING=true`) — 프로젝트 `recycle-bot-20241499`
   - 슬랙 질문 1건 = **trace 1건** (`recycle-rag`) — 안에 **Retriever(검색)** 와 **ChatOllama(생성)** 가 나란히 보여
@@ -229,7 +243,8 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0    # 임베딩 0.6 GB
     «사진을 잘못 봤나 / 이름은 맞는데 검색이 틀렸나 / 생성이 틀렸나» 를 가립니다.
     **사진은 trace 에 올리지 않습니다** — `Client(hide_inputs=…)` 로 사진(base64)을 «<image N bytes>» 로 바꿔 보냅니다.
   - **전처리도 추적** — PDF 정리 · 구조 분할 함수에 `@traceable` → 인덱스를 만들 때 청크가 어떤 모양으로 나왔는지 남김
-  - 태그: `rag` · `photo` · `no-rag`(비교 모드) / 메타데이터: `model` · `vision_model` · `embed_model` · `slack_user`
+  - 📝 메모 질문 1건 = **trace 1건** (`recycle-memo`) — `pick-tool`(도구 고르기) → MCP 도구(`add_memo` 등) → `tool-answer` → «도구를 잘못 골랐나 / 인자가 틀렸나» 를 가립니다.
+  - 태그: `rag` · `photo` · `mcp` · `follow-up` · `no-rag`(비교 모드) / 메타데이터: `model` · `vision_model` · `embed_model` · `slack_user`
 - **LangGraph**: 사용하지 않음 — 분기 · 순환이 없어 **LCEL 로 충분**합니다. 스레드 기억도 체크포인터 대신 봇 안의 작은 사전(키 = 채널-스레드ts)으로 둡니다.
 
 ### LangSmith 추적 화면 (추가 자료 · 11-25 부터 제출 요건은 아님)
@@ -268,7 +283,7 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0    # 임베딩 0.6 GB
 | OS · GPU | Windows 11 · PowerShell · NVIDIA RTX 3070 **8GB** |
 | 파이썬 | 3.13.3 |
 | Ollama | 0.32.14 |
-| 주요 패키지 | langchain 1.5.2 · langchain-core 1.8.4 ~ 1.8.5 · langchain-community 0.4.2 · langchain-ollama 1.2.0 · langchain-text-splitters 1.2.0 · langsmith 0.16.1 ~ 0.16.2 · faiss-cpu 1.16.0 · **pypdf 6.21.4** · slack_bolt 1.30.0 · **Pillow 13.0.0** (2026-11-24 · 11-27 설치) |
+| 주요 패키지 | langchain 1.5.2 · langchain-core 1.8.4 ~ 1.8.5 · langchain-community 0.4.2 · langchain-ollama 1.2.0 · langchain-text-splitters 1.2.0 · langsmith 0.16.1 ~ 0.16.2 · faiss-cpu 1.16.0 · **pypdf 6.21.4** · slack_bolt 1.30.0 · **Pillow 13.0.0** · **langchain[mcp] → fastmcp 4.2.6 · mcp 2.3.0** (2026-11-24 · 11-27 설치) |
 
 ### 5-2. 설치 (처음 한 번)
 
@@ -339,7 +354,9 @@ guideline     38   295자   399자
 
 ```powershell
 .\venv\Scripts\python.exe rag_backend.py "아이스팩 어떻게 버리지"                  # 검색 3개 + 답 + 근거
-.\venv\Scripts\python.exe rag_backend.py 대화 "형광등은 어떻게 버려요?" "그럼 깨진 건 어떻게 해?"   # 🔗 같은 스레드처럼 이어 묻기 · 경로 · 📚 근거 (제출 캡처 ②)
+.\venv\Scripts\python.exe rag_backend.py 대화 "형광등은 어떻게 버려요?" "그럼 깨진 건 어떻게 해?" "메모 재활용은 목요일 저녁 7시 이후 · 1층 분리수거장"
+                                                       # 🔗 같은 스레드처럼 이어 묻기 · 경로 · 📚 근거 · 📝 MCP 도구 호출 (제출 캡처 ②)
+.\venv\Scripts\python.exe memo_agent.py "메모 보여줘"                              # 📝 MCP 도구만 따로
 .\venv\Scripts\python.exe rag_backend.py 검색 "선글라스"                           # 검색만
 .\venv\Scripts\python.exe rag_backend.py 비교 "마트 영수증은 종이로 버려도 돼?"    # RAG 없이 vs RAG 로
 .\venv\Scripts\python.exe rag_backend.py 사진 photos\c2.jpg                        # 📷 사진 → 이름 → 검색 → 답
@@ -365,6 +382,16 @@ guideline     38   295자   399자
 ```
 
 같은 질문도 실행마다 풀어 쓴 말(«깨진 폐형광등» / «깨진 형광등»)과 답 문장이 조금씩 다릅니다(생성 모델의 temperature 0.1) — 7번 테스트표는 그 전 실행의 기록입니다.
+`메모 …` 줄은 이렇게 나옵니다 (2026-11-27 실행):
+
+```
+[3] 질문 : 메모 재활용은 목요일 저녁 7시 이후 · 1층 분리수거장
+    경로 : MCP mcp_server.py → pick-tool(gemma4 도구 고르기) → add_memo  (4.0초)
+    🔧 add_memo(text='재활용은 목요일 저녁 7시 이후 · 1층 분리수거장') → 1번 메모를 저장했습니다: 재활용은 목요일 저녁 7시 이후 · 1층 분리수거장
+    답   : 메모가 성공적으로 저장되었습니다.
+```
+
+MCP 서버가 뜰 때마다 `INFO Starting MCP server 'recycle-memo' with transport 'stdio'` 줄이 함께 보입니다(서버가 자식 프로세스로 뜬 표시 · 기준 코드와 같음).
 
 ```
 생성 모델 : gemma4:e4b
@@ -383,6 +410,7 @@ Bolt app is running!
 |---|---|
 | `@봇 아이스팩 어떻게 버려?` | 같은 스레드에 답 + 📚 근거 |
 | (그 스레드 안에서) `@봇 그럼 그거 안에 물만 들어 있으면?` | 🔗 앞 대화로 풀어 쓴 질문 한 줄 + 답 + 📚 근거 (스레드 밖에 새로 쓰면 앞 대화를 모름) |
+| `@봇 메모 재활용은 목요일 저녁 7시 이후` / `@봇 메모 보여줘` / `@봇 메모 1번 지워줘` | 📝 MCP 도구로 저장 / 목록 / 지우기 + 🔧 부른 도구 (메모는 봇을 쓰는 모두가 함께 봄 · `memo.json`) |
 | 📷 사진을 올리며 `@봇 이거 어떻게 버려?` | 📷 무엇으로 봤는지 + 답 + 📚 근거 + 🔁 다른 후보 (같이 쓴 글은 검색 힌트) |
 | `@봇 검색 선글라스` | 검색된 근거 3개 · 거리 |
 | `@봇 비교 마트 영수증은 종이로 버려도 돼?` | RAG 없이 / RAG 로 두 답 |
@@ -420,6 +448,8 @@ Bolt app is running!
 | `검색` · `비교` 가 안 먹음 | 멘션을 두 번 씀 (`@봇 @다른이름 검색 …`) — 멘션 한 번 뒤 바로 `검색` |
 | 답이 둘로 갈리거나 안 옴 | 같은 `SLACK_APP_TOKEN` 으로 다른 봇(10주차 봇 · 다른 PC 에서 켠 같은 봇 등)이 켜져 있음 → 하나만 |
 | 추적이 안 남고 콘솔에 «EnvAddressError … A project and an address are both set» | 수업 7주차 `.env` 의 `LANGSMITH_AGENT_ID` · `LANGSMITH_AGENT_ENVIRONMENT` 와 이 봇의 프로젝트 이름이 부딪힘 — 지금 `config.py` 는 두 키를 지우고 시작하므로 최신 코드면 생기지 않음 (2026-11-27 실제로 겪음) |
+| 봇 시작 때 «⚠️ MCP 서버를 띄우지 못했습니다» | `pip install -r requirements.txt` 로 `langchain[mcp]`(fastmcp) 설치 확인 — 메모만 꺼지고 RAG 는 그대로 돕니다 |
+| 메모 두 번째부터 «Event loop is closed» | 옛 코드 — 지금은 메모 질문마다 모델 객체를 새로 만들어 생기지 않음 (2026-11-27 실제로 겪음) |
 | 이어 물었는데 🔗 줄이 없음 | 스레드 **밖**에 새로 썼거나(스레드 안 «답글» 에서 물어야 함) · 봇을 껐다 켬(기억이 사라짐) · 질문에 «그럼 · 그거 …» 같은 말이 없음(혼자서도 되는 질문은 그대로 검색) |
 
 ## 6. 한계와 개선 방향
@@ -443,6 +473,7 @@ Bolt app is running!
 |---|---|---|
 | **질문 말 ≠ 문서 말이면 못 찾음** (위 1 · 2 · 4) | 위 표. 사진으로 물으면 사진 모델이 문서의 품목 이름(«무색페트병»)을 골라 넣어 찾기도 함 | 하이브리드(BM25) 검색 · 재정렬 모델 · 생활 용어 사전 — 평가 문항에 맞춘 사전이 되지 않게 **동의어 문항을 평가 세트에 더 넣어 먼저 약점 크기부터 재기** |
 | **🔗 이어 묻기 — 풀어 쓰기는 맞아도 답이 비켜 감** (위 3) | 2026-11-27 이어 묻기 5번 모두 질문은 맞게 풀어 씀(«그럼 깨진 건?» → «깨진 폐형광등은 어떻게 버려야 하나요?» 등). 그러나 «아이스팩 → 그럼 그거 안에 물만 들어 있으면?» 은 첫 답을 되풀이했고(물만 든 경우는 답하지 않음), «우유팩 → 그거 일반 종이랑?» 은 비켜 감 | 풀어 쓴 질문으로 다시 검색했을 때 근거가 바뀌었는지 보여 주기 · 답이 앞 답과 같으면 «그 내용은 문서에 없어요» 로 |
+| **📝 메모(MCP)는 모두가 함께 씀 · 느림** | 메모는 `memo.json` 하나라 봇을 쓰는 사람이 모두 같은 메모를 봅니다(«우리 집 · 우리 동아리» 한 묶음 기준). 질문마다 MCP 서버를 새로 띄워 한 번에 3.5 ~ 4.6초. 결과를 알리는 모델이 «메모 목록입니다.» 로만 답하고 목록을 빼먹어, 목록 보기는 도구 결과를 그대로 보여 주게 바꿈. 승인(interrupt) 없이 «지워 · 삭제» 말 검사로만 지우기를 막음 | 슬랙 사용자별 메모(코드가 사용자 ID 를 넘김) · 봇이 켜 있는 동안 MCP 서버를 띄워 두기(기준 코드 방식) · 지우기 앞 승인 |
 | **🔗 기억은 봇 안에만** | 봇을 껐다 켜면 스레드 기억이 사라짐 · 스레드 **밖**에 새로 쓴 질문은 앞 대화를 모름 (기준 코드의 `InMemorySaver` 와 같은 한계) | 슬랙 `conversations.replies` 로 스레드를 다시 읽기(`channels:history` 권한 필요) · SQLite 저장 |
 | **📷 버릴 물건이 아닌 사진에 엉뚱한 답** | 범위 밖 사진 4장 중 2장 — 빈 책상 → «가구류»(책상도 대형폐기물이라 애매), 고양이 → 밑에 깔린 이불을 보고 «솜» → 솜 배출 방법을 답함. 지시문에 «사람 · 동물 · 음식 · 풍경 사진은 모름» 을 넣어 봤지만 1/4 로 **더 나빠져** 되돌림 | 사진 모델의 1위 거리로 되묻기(지금은 맞힌 사진과 거리가 겹쳐 끔) · «사진의 주인공» 을 먼저 묻는 2단계 |
 | **📷 사진 측정의 조건** | 사진은 **AI 로 생성한 이미지**(글자 · 로고 없이 — 실제 포장 글자가 없어 그 점은 불리, 밝고 깨끗한 점은 유리)이고, 지시문을 **같은 사진으로 고쳤습니다**(v1 → v2 · 새 사진 세트로 다시 재지 않음) → 16/20 은 실제보다 높을 수 있음 | 실제 폰 사진 · 처음 보는 사진 세트로 다시 재기 |
@@ -479,7 +510,7 @@ Bolt app is running!
 | # | 무엇 | 파일 |
 |---|---|---|
 | ① | `python build_index.py --show` — 구역별 청크 수(456) · 출처 metadata(`source` · `page` · `year` · `item` …) | [`captures/1-index-show.png`](captures/1-index-show.png) |
-| ② | `python rag_backend.py 대화 "형광등은 어떻게 버려요?" "그럼 깨진 건 어떻게 해?"` — 내 자료 질문 · 📚 근거 · 경로 · 🔗 이어 묻기 | [`captures/2-terminal.png`](captures/2-terminal.png) |
+| ② | `python rag_backend.py 대화 "형광등은 어떻게 버려요?" "그럼 깨진 건 어떻게 해?" "메모 재활용은 목요일 저녁 7시 이후 · 1층 분리수거장"` — 내 자료 질문 · 📚 근거 · 경로 · 🔗 이어 묻기 · 📝 MCP 도구 호출 | [`captures/2-terminal.png`](captures/2-terminal.png) |
 | ③ | 슬랙 — 내 자료 질문 4개(📚 근거 붙은 답 3개) · 같은 스레드에서 «그럼 깨진 건 어떻게 해?» 이어 묻기 · 자료에 없는 질문 | [`captures/3-slack.png`](captures/3-slack.png) — 2번 «실제 슬랙 화면» |
 
 ![① build_index.py --show](captures/1-index-show.png)
@@ -494,7 +525,7 @@ Bolt app is running!
 |---|---|---|
 | «내 자료로 RAG 가 동작하는 슬랙 봇» | 분리배출 PDF 2건(88쪽 · 456청크) → RAG → 슬랙 멘션 · DM · 같은 스레드 답 + 📚 근거 | 2번 · 4번 |
 | 기준 코드 `slack_bot/` | 같은 10주차 `slack_bot_mode` 에서 출발한 자체 구현 · 기준 코드의 ① 스레드 기억(`contextualize`) 방식을 옮겨 옴 · 파일 대응표 | 4번 «13주차 기준 코드와의 관계» |
-| MCP 도구 1개 이상 (권장) | 아직 없음 — gemma4:e4b 가 도구 호출을 지원해(`ollama show` · tools) VRAM 을 더 쓰지 않고 넣을 수 있어 다음 작업으로 진행 중 | — |
+| MCP 도구 1개 이상 (권장) | ✅ **3개** — `mcp_server.py` 의 «우리 동네 분리배출 메모» `show_memos` · `add_memo` · `delete_memo` · 도구 고르기 gemma4:e4b(모델 추가 없음) · `--no-mcp` 없이 실행 | 4번 «📝 MCP 도구» · «제출 캡처» ② |
 | 구현 ① `--show` 캡처 (청크 수 · 출처) | `build_index.py --show` | «제출 캡처» ① |
 | 구현 ② 터미널 캡처 (내 자료 질문 · 📚 근거 · 경로) | `rag_backend.py 대화` | «제출 캡처» ② |
 | 구현 ③ 슬랙 캡처 (질문 3개 이상 · 📚 근거 · 이어 묻기 1개) | 한 스레드에서 형광등 → 그럼 깨진 건 → … | 2번 «실제 슬랙 화면» · «제출 캡처» ③ |
@@ -514,7 +545,7 @@ Bolt app is running!
 | **LangChain 기반 구현** | Loader · Splitter · OllamaEmbeddings · FAISS · LCEL 체인 (사진 단계도 LCEL) | 4번 |
 | LangSmith 추적 (11-25 부터 선택) | 질문 1건 = trace 1건(검색 + 생성 · 이어 묻기면 contextualize 도) · 사진 질문 1건 = trace 1건(이름 + 검색 + 생성) · 전처리 `@traceable` · 프로젝트 `recycle-bot-20241499` | 4번 · CONTEXT «관측» |
 | **슬랙으로 묻고 슬랙으로 답한다** | 채널 멘션 · DM(글 · 사진) → 같은 스레드에 답 (`slack_bolt` Socket Mode) | 2번(슬랙 화면) · 4번 |
-| **처리: RAG 또는 MCP (하나 이상)** | **RAG** — 고른 이유 명시 | 4번 · CONTEXT «처리 흐름» |
+| **처리: RAG 또는 MCP (하나 이상)** | **RAG**(본 기능 · 고른 이유 명시) + **MCP**(📝 우리 동네 메모 도구 3개 · 2026-11-27) | 4번 · CONTEXT «처리 흐름» |
 | **VRAM 8GB 에서 실제로 동작** | 파일 크기 합 9.8GB 이지만 **실측 7.6 ~ 7.7GB** (RTX 3070 8GB 에서 세 모델 동시 구동 · 100% GPU · 슬랙 봇 실행 중) | 3번 · CONTEXT «하드웨어 확인» |
 | 모델 선택 근거 (품질 · 속도 · 비용 · 보안 · 오프라인 · VRAM) | 품질(한국어 검색 · 근거대로 답하기 · 사진 적중) + 속도 + 보안 · 오프라인 + VRAM — 수업 기본 모델과 **같은 조건 실측 비교** | 3번 · CONTEXT 부록 |
 | ✗ 12B 이상 모델 | 7.5B(실효 4.5B) + 4.2B + 0.6B | 3번 |
@@ -547,7 +578,7 @@ Bolt app is running!
 ### 최종 제출 — 제출 전 마지막 확인 (11-25 변경 · 마감 12/4 3교시 전)
 
 - [x] `build_index.py --show` 캡처 — 청크 수 · 출처가 보인다 (`captures/1-index-show.png` · 2026-11-27)
-- [x] 터미널 캡처 — 내 자료 질문에 📚 근거가 붙었다 (`captures/2-terminal.png` · 2026-11-27) — 권장 «내 MCP 도구가 호출된 질문 1개» 는 MCP 를 넣으면 추가
+- [x] 터미널 캡처 — 내 자료 질문에 📚 근거가 붙었다 (`captures/2-terminal.png` · 2026-11-27) — 권장 «내 MCP 도구가 호출된 질문 1개» 포함
 - [x] 슬랙 캡처 — 내 자료 질문 3개 이상 · 📚 근거 · 같은 스레드 이어 묻기 1개 (`captures/3-slack.png` · 2026-11-27)
 - [x] README 7번 테스트표 5문항 (자료에 없는 질문 1개 포함)
 - [x] README 6번 한계 — 틀린 답 1개 이상과 원인
