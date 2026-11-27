@@ -17,7 +17,8 @@
 ✅ 캡처 3종(`captures/` · 2026-11-27 사용자 촬영 · 확인함) · CONTEXT 부록 F 새로 씀.
 ✅ 추가 자료 캡처(`docs/` slack-compare · slack-photo · trace-rag · trace-retriever · trace-photo — 지금 모델로 다시 찍음) · `main` 반영(사용자 GitHub Desktop).
 ✅ **📝 MCP 도구** (2026-11-27 · SPEC 13-1 r · CONTEXT 부록 I): `mcp_server.py` + `memo_agent.py` · 슬랙 `메모` 앞말 · `offline_check` 96항목 · 실제 모델 도구 고르기 11/11.
-남은 것 = ① 캡처 ② 를 «메모» 줄까지 넣어 다시 찍기(사용자) · (선택) 슬랙 메모 화면 ② 커밋 → `main`(GitHub Desktop) · 사용자가 최종 보고서에 저장소 링크.
+✅ 캡처 ② 를 «메모» 줄까지 다시 찍음 · 슬랙 메모 화면 `docs/slack-memo.png`(README 2번) — 2026-11-27 사용자 촬영 · `main` 반영.
+남은 것 = 사용자가 최종 보고서에 저장소 링크. (참고) 슬랙 «찾지 못했습니다» 안내 줄의 `@버릴지도 메모 …` 는 실제 봇 이름(`@Jinseok-20241499-Bot`)과 달라 그대로 치면 멘션이 안 됨 — 문서 별명 방침(미결 8)대로 둠.
 `docs/slack-thread.png`(옛 모델 화면 · README 에서 안 씀)는 **지우지 않음**(사용자 결정 2026-11-27 «상관없다»).**
 마감 **12/4(14주차) 3교시 전** · 제출처는 추후 공지.
 
