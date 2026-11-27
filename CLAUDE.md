@@ -11,44 +11,88 @@
 동양미래대 «최신인공지능» 수업(학번 20241499) 미니 프로젝트. **응답은 한국어로.**
 수업 저장소의 `mini_project/` 를 2026-11-20 에 커밋 기록째 옮겨 온 **독립 저장소**입니다(아래 «저장소 두 곳»).
 
-## ▶ 다음 세션은 여기부터 (2026-11-27 기준)
+## ▶ 다음 세션은 여기부터 (2026-11-27 기준 · ✅ 제출 준비 끝)
 
-**상태: 채점 기준이 바뀜(13주차 «최종 제출 안내» 0절 · 11-25 변경) → 🔗 이어 묻기 구현 · 테스트표 · 문서를 새 기준으로 고침 (작업 브랜치 `photo-feature`).
-✅ 캡처 3종(`captures/` · 2026-11-27 사용자 촬영 · 확인함) · CONTEXT 부록 F 새로 씀.
-✅ 추가 자료 캡처(`docs/` slack-compare · slack-photo · trace-rag · trace-retriever · trace-photo — 지금 모델로 다시 찍음) · `main` 반영(사용자 GitHub Desktop).
-✅ **📝 MCP 도구** (2026-11-27 · SPEC 13-1 r · CONTEXT 부록 I): `mcp_server.py` + `memo_agent.py` · 슬랙 `메모` 앞말 · `offline_check` 96항목 · 실제 모델 도구 고르기 11/11.
-✅ 캡처 ② 를 «메모» 줄까지 다시 찍음 · 슬랙 메모 화면 `docs/slack-memo.png`(README 2번) — 2026-11-27 사용자 촬영 · `main` 반영.
-남은 것 = 사용자가 최종 보고서에 저장소 링크. (참고) 슬랙 «찾지 못했습니다» 안내 줄의 `@버릴지도 메모 …` 는 실제 봇 이름(`@Jinseok-20241499-Bot`)과 달라 그대로 치면 멘션이 안 됨 — 문서 별명 방침(미결 8)대로 둠.
-`docs/slack-thread.png`(옛 모델 화면 · README 에서 안 씀)는 **지우지 않음**(사용자 결정 2026-11-27 «상관없다»).**
-마감 **12/4(14주차) 3교시 전** · 제출처는 추후 공지.
+**상태: 13주차 «최종 제출 안내»(0절 · 11-25 변경)의 기준을 모두 채웠습니다 → 이제 제출만 남았습니다.**
+`main` = `photo-feature` (둘 다 GitHub 에 반영 · 저장소는 public · 로그인 없이 열리는지 확인함 2026-11-27).
+GitHub 에서 빈 폴더로 새로 clone 해서 README 5번대로 설치하고 검사를 돌려 통과했습니다(안내 4절 · 2026-11-27).
 
-- **새 채점 기준 (2026-11-25 변경 · 원본은 사용자가 저장소 맨 위에 둔 `[13주차]학생용_미니프로젝트_최종제출_안내.html` — 수업 자료라 커밋 안 함)**
-  - 범위: «내 자료로 RAG 가 동작하는 슬랙 봇» · **LangSmith 추적 · 캡처는 요건에서 빠짐** · MCP 도구 1개 이상은 **권장** · 승인 · 진행 표시 · 멀티 에이전트는 선택(점수 없음)
-  - 제출물: 코드는 **GitHub 링크를 최종 보고서에** / README(10주차 6항목 + **7번 테스트표**) / CONTEXT(대상 문서) / **캡처 3종 `captures/`**: ① `--show` ② 터미널 ③ 슬랙(질문 3개 이상 · 📚 · 같은 스레드 «그럼 · 그거» 이어 묻기 1개)
-  - 채점은 «돌아가는가 · 스스로 확인했는가» — **틀린 답을 찾아 적으면 점수** (README 6번: 틀린 답 + 검색 문제인지 생성 문제인지)
-  - «기준 코드 `13week_new/code/slack_bot/`» → 사용자 결정(11-27): **우리 코드 유지 + 기준 코드의 ① 스레드 기억(`contextualize`) 방식 이식**. 둘 다 10주차 `slack_bot_mode` 에서 나온 형제라 README 4번에 파일 대응표
-  - 수업 코드 사본은 `old_codes/<날짜>/` (사용자가 넣음 · `.gitignore` 의 `/old_codes`) — 기준 코드 = `old_codes/11-27/slack_bot/`
-- **2026-11-27 에 한 일**
-  - PC 가 초기화돼 있었음(함정 30) → venv · 사례집 · 모델 3개 다시 준비(KURE 는 이번엔 `ollama pull` 이 4.7MB/s 로 됨 · sha256 `055cd596…` 같음) · 인덱스 456청크
-  - 수업 `.env` 의 `LANGSMITH_AGENT_*` 때문에 trace 가 버려지던 것 → `config.py` 가 지움(함정 29 · SPEC 13-1 p · 커밋 `c88b2fc`)
-  - **🔗 이어 묻기** (SPEC 13-1 q): `rag_backend` 의 `FOLLOW_UP` · `contextualize_run` · `ask_full(history=)` · `대화` 모드 / `slack_rag_bot` 스레드 기억 · «🔗 앞 대화로 «…» 로 이해했어요» 줄. `offline_check` **84항목** ALL OK
-  - 실측(CONTEXT 부록 H): 이어 묻기 풀어 쓰기 **5/5** 맞음 · 답 3/5 / 테스트표 **3/5** — 틀린 것은 «택배 상자» · «돌돌이 리필 다 쓴 건 어디다 버림?»(둘 다 검색 문제) · 생성 문제 예 «우유팩 → 그거 일반 종이랑?»
-  - 문서: README(2 · 4 · 5 · 6번 · **7번 테스트표** · 제출 캡처 · 최종 제출 기준 대조 · 체크리스트) · CONTEXT(처리 흐름 · 관측 선택 · 범위 밖 · 위험 · 부록 H) · architecture · SPEC · `.env.example`
-  - **옛 캡처**: `docs/slack-thread.png` · `slack-compare.png` · `trace-rag.png` · `trace-retriever.png` 는 옛 생성 모델 시절(11-19) 화면이라 README 에서 **참조를 뺌**(파일은 남아 있음 — 지울지는 사용자 확인). `trace-build.png` 만 예로 남김
-- **▶ 다음에 할 일** (이 순서로)
-  1. ✅ (2026-11-27) 봇을 새 코드로 다시 켬 → 캡처 3종 받음 · README 캡션 · CONTEXT 부록 F 반영.
-     ③ 슬랙 캡처에는 사용자 슬랙 이름 · 채널 이름이 보임(토큰 · ID 없음 · 수업 제출용이라 그대로 — 가리고 싶다고 하면 잘라 내기)
-  2. (선택 · 사진) `captures/3-slack-photo.png` 는 찍지 않아 README 에서 뺌 — 사진 질문은 11-24 슬랙 확인 기록 · 맨 위 그림(터미널 실제 출력)으로 설명
-  3. **MCP 도구** — 사용자 결정(11-27): 이어 묻기 다음에. 설계안: `@봇 메모 …` 같은 **앞말로만** 도구 갈래(지금 `검색` · `비교` 처럼 · RAG 경로는 그대로) ·
-     도구 모델 = gemma4:e4b(`ollama show` 에 tools ✅ · VRAM 추가 없음) · 도구 = «우리 동네 배출 요일 메모» 저장 · 보기 · 새 패키지 `fastmcp` · `langchain-mcp-adapters`(설치 승인됨) ·
-     기준 코드 `old_codes/11-27/slack_bot/mcp_server.py` · `bot_graph.py`(`tool_agent` · `MAX_TOOL_ROUNDS` · 소형 모델 안전장치) 참고 → 넣으면 캡처 ② 에 도구 호출 질문 1개
-  4. 검사(`--check` · `offline_check` · README 이미지 링크 존재) → 커밋 → `main` (함정 28: CLI push 막힘 → GitHub Desktop)
-- **캡처 3종 안내 (사용자에게 줄 것)** — 저장 위치 `captures/` (저장소 맨 위 · 커밋함) · 파일 이름 그대로
-  - ① `1-index-show.png`: `.\venv\Scripts\python.exe build_index.py --show` 의 위쪽(구역별 청크 수 표 + 첫 청크들의 metadata `source` · `page`)
-  - ② `2-terminal.png`: `.\venv\Scripts\python.exe rag_backend.py 대화 "형광등은 어떻게 버려요?" "그럼 깨진 건 어떻게 해?"` 출력 전체(경로 · 🔗 · 📚)
-  - ③ `3-slack.png`: 채널에서 `@Jinseok-20241499-Bot 형광등은 어떻게 버려요?` → 그 답의 스레드에서 `@Jinseok-20241499-Bot 그럼 깨진 건 어떻게 해?` →
-    `@Jinseok-20241499-Bot 우유팩은 어떻게 버려요?` → `@Jinseok-20241499-Bot 강남구는 재활용 무슨 요일에 내놔?` (📚 붙은 답 3개 + 이어 묻기 + 자료에 없는 것)
-  - (선택) `3-slack-photo.png`: 사진(`photos/c2.jpg`) + `@Jinseok-20241499-Bot 이거 어떻게 버려?` — README 2번이 가리킴 · 안 찍으면 README 에서 그 줄을 뺄 것
+- **남은 것 (사용자)** — 제출처는 «추후 공지». 공지에 «최종 보고서» 양식이 있으면 거기에 저장소 링크 https://github.com/Jinseok2419342/recycle-rag-slack-bot 를 적고,
+  양식이 없으면 링크만 내도 됨(사용자와 합의 2026-11-27). 마감 **12/4(14주차) 3교시 전**. 공지가 늦으면 교수님께 «링크만 드리면 되는지» 여쭤보라고 안내함.
+  사용자가 공지 내용을 가져오면 → 보고서 문구 정리를 도움. 보고서 본문 문서 · 파일은 아직 만들지 않음
+- **사용자가 «개선» 하러 다시 오면** → 아래 «개선 후보» 에서 고르게 함. 마감 전이면 **제출본(`main`)을 깨뜨리지 않는 것이 먼저**:
+  새 브랜치에서 작업 → 검사(`--check` · `offline_check` · 문서 링크) 통과 + 실측 + 문서(README · CONTEXT 숫자 함께 · SPEC 13-1)까지 끝난 것만 `main`.
+  측정해 보니 효과가 없으면 «없었다» 고 적거나 브랜치를 버림(`main` 에 넣지 않음)
+
+### 세션 시작 순서 (사용자가 «CLAUDE.md 보고 시작하자» 라고 하면)
+
+1. `git status -sb` · `git log --oneline -3` — 브랜치 · `[ahead N]` 확인. **CLI `git push` 가 됨**(2026-11-27 사용자 GitHub 로그인 · 함정 28). 막히면 GitHub Desktop 의 Push origin 을 부탁
+2. 환경 확인 (함정 30 — 이 PC 는 초기화될 수 있음): `ollama list`(`gemma4:e4b` · `qwen3.5:4b` · `hf.co/mykor/KURE-v1-gguf:Q8_0`) · `Test-Path venv` ·
+   `data\분리배출_QA사례100_2026.pdf` · `index_recycle\` · `.env` 가 **있는지만**(내용 출력 금지). 빠진 게 있으면 README 5번 순서(모델 pull 은 사용자 확인 뒤)
+3. 모델 없이 검사: `.\venv\Scripts\python.exe build_index.py --check`(15항목 ✅) · `.\venv\Scripts\python.exe tests\offline_check.py`(**96항목** ALL OK — MCP 서버를 실제로 띄움) ·
+   PowerShell 은 먼저 `$env:PYTHONUTF8=1; [Console]::OutputEncoding=[Text.Encoding]::UTF8`
+4. 봇이 필요할 때만 — `ollama ps` 로 GPU 비우고(함정 25) 백그라운드(PowerShell · `run_in_background`)로:
+   `$env:PYTHONUTF8=1; [Console]::OutputEncoding=[Text.Encoding]::UTF8; $env:Path += ";$env:LOCALAPPDATA\Programs\OllamaAIClass"; .\venv\Scripts\python.exe -u slack_rag_bot.py 2>&1`
+   → Monitor 로 `워밍업|MCP 도구|MCP 서버를|Bolt app is running|받음|이어 묻기|답함|실패|Traceback|Error` 줄을 지켜봄.
+   «MCP 도구 : add_memo · delete_memo · show_memos» · «Bolt app is running!» 이 나오면 준비 끝 («INFO Starting MCP server» 의 NativeCommandError 는 정상 · 함정 32)
+5. 그날 일이 끝나면 봇 · Monitor 를 TaskStop
+
+### 지금 모습 (한눈에)
+
+- **모델**: 생성 `gemma4:e4b` · 사진 `qwen3.5:4b`(`PHOTO_MODE=pick`) · 임베딩 KURE-v1 · 세 모델 함께 VRAM 7.6 ~ 7.7GB / 8GB
+- **인덱스 · 검색**: PDF 2건 → 구역별 구조 분할 **456청크** · 검색 `basic` · `year_bonus 0.09` · 프롬프트 `base`
+- **슬랙 갈래** (LLM 분류 없이 **앞말**로 가름 · `slack_rag_bot.parse`):
+  일반 질문 → RAG (같은 스레드면 🔗 이어 묻기 — 스레드 기억 키 = 채널-스레드ts · 최근 3번) / `검색 …` / `비교 …` / 📷 사진 / `메모 …` → 📝 MCP
+  (`mcp_server.py` 도구 3개 `show_memos` · `add_memo` · `delete_memo` → `memo.json`(gitignore) · `memo_agent.py` 가 gemma4 `bind_tools` 로 고름 · 질문마다 서버를 새로 띄움)
+- **실측 요약**: 생성 30문항 29/30 · 검색 Top-3 23/24 · 사진 16/20 · README 7번 테스트표 3/5 · 이어 묻기 풀어 쓰기 5/5 · MCP 도구 고르기 11/11(3.5 ~ 4.6초)
+- **제출물이 있는 곳**: README(1 ~ 7번 · «제출 캡처» · «최종 제출 기준 대조» · «필수 요건 대조» · 체크리스트) · CONTEXT(대상 문서 · 부록 A ~ I) ·
+  `captures/` 3종(① `1-index-show` ② `2-terminal` — 메모 줄 포함 ③ `3-slack`) ·
+  `docs/` 추가 캡처(`slack-photo` · `slack-compare` · `slack-memo` · `trace-rag` · `trace-retriever` · `trace-photo` · `trace-build` — 모두 README 에서 씀.
+  `slack-thread.png` 는 옛 모델 화면 · README 에서 안 씀 · **지우지 않음**(사용자 결정 2026-11-27))
+- **옛 기준에서 지운 것 없음** — LangSmith 는 요건에서 빠졌지만 코드 · 캡처 · «필수 요건 대조» 표를 그대로 둠(«선택 · 추가 자료»)
+
+### 채점 기준 (2026-11-25 변경 · 원본 `[13주차]학생용_미니프로젝트_최종제출_안내.html` 은 사용자가 저장소 맨 위에 둠 · 수업 자료라 커밋 안 함 — PC 가 초기화되면 없음. 그때는 이 요약을 씀)
+
+- 범위: «내 자료로 RAG 가 동작하는 슬랙 봇» · **LangSmith 추적 · 캡처는 요건에서 빠짐** · MCP 도구 1개 이상은 **권장** · 승인 · 진행 표시 · 멀티 에이전트는 선택(점수 없음) · 발표 없음
+- 제출물: 코드는 **GitHub 링크를 최종 보고서에** / README(10주차 6항목 + **7번 테스트표** 5문항 — 표준 · 구어체 · 이어 묻기 · 표준 · 자료에 없는 것) / CONTEXT(대상 문서 — 출처 · 형식 · 분량) /
+  **캡처 3종 `captures/`**: ① `--show`(청크 수 · 출처) ② 터미널(내 자료 질문 · 📚 · 경로 · 권장: MCP 도구 호출 1개) ③ 슬랙(질문 3개 이상 · 📚 · 같은 스레드 «그럼 · 그거» 이어 묻기 1개)
+- 채점은 «돌아가는가 · 스스로 확인했는가» — **틀린 답을 찾아 적으면 점수** (README 6번: 틀린 답 + 검색 문제인지 생성 문제인지)
+- 안내 4절: 새 폴더에 clone 해서 README 5번대로 처음부터 실행 · `.env` · 키 · 학교 문서 원본을 올리지 않음 (가이드라인 PDF 4.8MB 는 환경부 공개 문서라 커밋된 채로 둠 — 사용자에게 알림)
+- «기준 코드 `13week_new/code/slack_bot/`» → 사용자 결정(11-27): **우리 코드 유지 + 기준 코드의 ① 스레드 기억(`contextualize`) 방식 이식**. 둘 다 10주차 `slack_bot_mode` 에서 나온 형제라 README 4번에 파일 대응표
+- 수업 코드 사본은 `old_codes/<날짜>/` (사용자가 넣음 · `.gitignore` 의 `/old_codes`) — 기준 코드 = `old_codes/11-27/slack_bot/`
+- 안내가 말하는 «13주차 중간점검 체크리스트.md» 는 저장소 · `old_codes/` 어디에도 없음 — 제출물 목록에 없어 저장소 쪽 할 일은 없다고 사용자에게 알림
+
+### 개선 후보 (사용자가 원할 때만 · 한 번에 하나씩 바꾸고 실측 · 자세한 근거는 README 6번 · 아래 «11-24 참고» 4번)
+
+1. **검색 «질문 말 ≠ 문서 말»** — README 6번 «틀린 답» 1 · 2 · 4(택배 상자 ↔ 종이상자 · 돌돌이 리필 다 쓴 건 ↔ 테이프크리너 리필종이 · 생수 ↔ 먹는 샘물).
+   먼저 동의어 문항을 평가 세트에 더 넣어 약점 크기부터 재기 → BM25 하이브리드 · 재정렬 모델(VRAM 여유 0.3GB → CPU) · 다른 임베딩 비교. 평가 문항에 맞춘 사전 · 청크 덧붙이기는 금지(함정 9)
+2. 품목사전 `item` 이름 6개에 문장 조각이 붙음 (`split_item_dict` · `--check` 기준이 바뀜)
+3. 이어 묻기 답이 비켜 감 — «아이스팩 → 그거 안에 물만 들어 있으면?» 은 첫 답 되풀이 · «우유팩 → 그거 일반 종이랑?» 은 생성 문제 (CONTEXT 부록 H)
+4. 📝 메모 — 슬랙 사용자별 메모 · MCP 서버를 봇이 켜 있는 동안 띄워 두기(지금 질문마다 3.5 ~ 4.6초) · 지우기 앞 승인 · 저장 뒤 알림이 «메모 목록: 2.» 처럼 틀리게 말함(생성 문제)
+5. 슬랙 «찾지 못했습니다» 안내 줄의 `@버릴지도 메모 …` 는 실제 봇 이름(`@Jinseok-20241499-Bot`)과 달라 그대로 치면 멘션이 안 됨 — 문서 별명 방침(미결 8)대로 둠 · 고치려면 사용자 확인
+6. 📷 다른 후보가 엉뚱함(거리 차 작을 때만 보이기) · 범위 밖 사진 2/4 · 새 사진 세트로 다시 재기
+7. 연도 안내 줄이 «충돌» 이 아닐 때도 붙음 · 시나리오 8(Ollama 끄기 · 선택)
+
+### 캡처를 다시 찍어야 할 때 (사용자에게 줄 안내 · 봇 이름 `@Jinseok-20241499-Bot` · 함정 18)
+
+- ① `captures/1-index-show.png`: `.\venv\Scripts\python.exe build_index.py --show` 의 위쪽(구역별 청크 수 표 + 첫 청크들의 metadata `source` · `page`)
+- ② `captures/2-terminal.png`: `.\venv\Scripts\python.exe rag_backend.py 대화 "형광등은 어떻게 버려요?" "그럼 깨진 건 어떻게 해?" "메모 재활용은 목요일 저녁 7시 이후 · 1층 분리수거장"`
+  출력 전체(경로 · 🔗 · 📚 · 🔧). ⚠️ 실제 `memo.json` 에 메모가 저장됨 · 다시 찍으면 README 5번 «`대화` 의 실제 출력» 도 그 실행으로 맞출 것
+- ③ `captures/3-slack.png`: 채널에서 `@봇 형광등은 어떻게 버려요?` → **그 답의 스레드에서** `@봇 그럼 깨진 건 어떻게 해?` → `@봇 우유팩은 어떻게 버려요?` → `@봇 강남구는 재활용 무슨 요일에 내놔?`
+- `docs/slack-memo.png`: `@봇 강남구는 재활용 무슨 요일에 내놔?` → 같은 스레드에서 `@봇 메모 …` → `@봇 메모 보여줘`
+  (2026-11-27 판은 «메모 보여줘» 를 스레드 밖에 보내 화면에 없음 — README 캡션에 밝힘). 슬랙 이름 · 채널 이름은 그대로 둠 · LangSmith Metadata 탭은 찍지 않음
+
+### 2026-11-27 에 한 일 (기록)
+
+- PC 가 초기화돼 있었음(함정 30) → venv · 사례집 · 모델 3개 다시 준비(KURE 는 이번엔 `ollama pull` 이 4.7MB/s 로 됨 · sha256 `055cd596…` 같음) · 인덱스 456청크
+- 수업 `.env` 의 `LANGSMITH_AGENT_*` 때문에 trace 가 버려지던 것 → `config.py` 가 지움(함정 29 · SPEC 13-1 p · 커밋 `c88b2fc`)
+- **🔗 이어 묻기** (SPEC 13-1 q): `rag_backend` 의 `FOLLOW_UP` · `contextualize_run` · `ask_full(history=)` · `대화` 모드 / `slack_rag_bot` 스레드 기억 · «🔗 앞 대화로 «…» 로 이해했어요» 줄
+- 실측(CONTEXT 부록 H): 이어 묻기 풀어 쓰기 **5/5** 맞음 · 답 3/5 / 테스트표 **3/5** — 틀린 것은 «택배 상자» · «돌돌이 리필 다 쓴 건 어디다 버림?»(둘 다 검색 문제) · 생성 문제 예 «우유팩 → 그거 일반 종이랑?»
+- **📝 MCP 도구** (SPEC 13-1 r · CONTEXT 부록 I): `mcp_server.py` + `memo_agent.py` · `requirements.txt` 를 `langchain[mcp]` 로(fastmcp 4.2.6 · mcp 2.3.0) · 실제 모델 도구 고르기 11/11 ·
+  찾아 고친 것: 목록을 빼먹는 답(→ `show_memos` 결과를 그대로) · 두 번째 질문부터 «Event loop is closed»(함정 31)
+- 캡처: 제출 3종 + `docs/` 추가 자료를 지금 모델로 다시 찍음(사용자) · CONTEXT 부록 F(슬랙 왕복) 새로 씀
+- 문서: README(2 · 4 · 5 · 6번 · **7번 테스트표** · 제출 캡처 · 최종 제출 기준 대조 · 체크리스트 + 안내 4절 항목) · CONTEXT(처리 흐름 · 관측 선택 · 범위 밖 · 위험 · 부록 F · H · I) · architecture · SPEC · `.env.example`
+- 마지막에 안내 HTML 과 한 줄씩 대조 → 빠진 것 없음 · 새 폴더 clone 설치 검사 통과 · `main` 반영(커밋 `0306d9b` 까지)
 
 ### (참고) 2026-11-24 기준이던 내용
 
@@ -61,7 +105,7 @@
   - 결과 전체 · 계획과 달라진 점: [docs/photo-feature-plan.md](docs/photo-feature-plan.md) 맨 위 «결과» · CONTEXT 부록 C · E · G
   - **문서 방침**: README · CONTEXT · docs 를 새 모델 기준으로 다시 씀 (A.X 는 언급하지 않음 · 비교군 `gemma3:4b`) — 2026-11-24 완료.
     사진은 **AI 생성 이미지** · 지시문을 **같은 사진으로 고침**(v1 → v2) · 새 사진 세트로 다시 재지 않음 → README 6번 · 부록 G 에 밝힘
-- **▶ 세션 시작 순서** — 사용자가 «CLAUDE.md 보고 시작하자» 라고 하면
+- (옛 판 — 맨 위 «세션 시작 순서» 가 대신함) **세션 시작 순서** — 사용자가 «CLAUDE.md 보고 시작하자» 라고 하면
   1. `git status` · `git log --oneline -3` — 브랜치 `photo-feature` 인지, 끝 커밋이 이 파일을 고친 커밋인지 확인.
      `git status -sb` 의 `[ahead N]` 이 남아 있으면 사용자가 GitHub Desktop 에서 Push origin 을 아직 안 누른 것 → 부탁
   2. `ollama list` · `Test-Path venv` (함정 30 — PC 가 초기화됐을 수 있음) · `captures/` 에 png 3종이 있는지 확인 — 없으면 3번
@@ -206,7 +250,7 @@
 ## 필수 요건 (어기면 감점 · 수업 2교시 §4-2 · §4-3 → SPEC 1장 R1~R14 · 2026-11-19 전부 충족 확인)
 
 1. **슬랙으로 묻고 슬랙으로 답한다** — 채널 멘션 · DM → **같은 스레드에** 답. 터미널에서만 도는 건 요건 미충족
-2. **RAG 또는 MCP** 하나 이상 → 이 프로젝트는 **RAG** (MCP · LangGraph 안 씀)
+2. **RAG 또는 MCP** 하나 이상 → 이 프로젝트는 **RAG**(본 기능) + **MCP**(📝 메모 도구 3개 · 2026-11-27 · `메모` 앞말일 때만) · LangGraph 는 안 씀(LCEL 로 충분 · README 4번)
 3. **LangChain 구현** (+ LangSmith 추적 — **11-25 에 요건에서 빠짐** · 코드는 그대로 추적을 남김)
 3-1. (11-25 추가) **같은 스레드 이어 묻기** · README 7번 테스트표 · 캡처 3종 `captures/` · MCP 도구 1개(권장) — 위 «새 채점 기준»
 4. **VRAM 8GB 에서 실제로 동작** (RTX 3070 8GB 에서 세 모델 동시 실측 **7.6 ~ 7.7 GB** · 100% GPU — 2026-11-24. 여유 0.3GB 남짓이라 다른 모델이 남아 있으면 넘침)
@@ -248,14 +292,14 @@ recycle-rag-slack-bot/             ← git 저장소 맨 위 (github.com/Jinseok
 ├── questions.py                   ← 평가 문항 30개 (+ 자기 검사)
 ├── evaluate.py                    ← retrieval | answer | photo | prep-photos → eval_results/
 ├── requirements.txt · .env.example
-├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (71항목)
+├── tests/offline_check.py         ← 모델 없이 코드 경로 확인 (96항목 · 2026-11-27 — 이어 묻기 · MCP 메모 포함)
 ├── docs/architecture.md           ← 구성도 · 프로세스 · 흐름도 (사진 흐름 포함)
 ├── docs/scenarios.md              ← 가상 시나리오 10개 (9 · 10 = 사진)
 ├── docs/photo-feature-plan.md     ← 사진으로 묻기 — 맨 위 «결과»(2026-11-24) + 아래는 2026-11-20 계획 그대로
-├── docs/*.png                     ← 캡처 — trace-build(11-17) + 6장(2026-11-24 새로: trace-rag · trace-retriever · trace-photo · slack-thread · slack-compare · slack-photo)
+├── docs/*.png                     ← 추가 자료 캡처 — trace-build(11-17) · slack-thread(옛 · 안 씀) + 2026-11-27: trace-rag · trace-retriever · trace-photo · slack-compare · slack-photo · slack-memo
 ├── photos/                        ← 사진 평가 세트 24장 (AI 생성 · prep-photos 로 1280px · 메타데이터 삭제) — 파일 이름 = 문항 id · out_* = 범위 밖
 ├── photos_raw/ · captures_raw/    ← 원본 사진 · 캡처를 잠시 두는 곳 (gitignore)
-├── captures/                      ← 11-25 제출 캡처 3종 (1-index-show · 2-terminal · 3-slack (+ 3-slack-photo)) — 커밋함
+├── captures/                      ← 11-25 제출 캡처 3종 (1-index-show · 2-terminal · 3-slack) — 커밋함 · 사진 슬랙 화면은 docs/slack-photo.png
 ├── old_codes/                     ← 수업 실습 코드 사본 (사용자가 넣음 · gitignore) — 13주차 기준 코드 = old_codes/11-27/slack_bot/
 ├── scratch_eval.py                ← 10주차 생성 모델 비교 스크립트 (CONTEXT 부록 C 재현용 · 2026-11-24 reasoning=False 한 줄만 추가)
 ├── index_recycle/                 ← build_index.py 가 만듦 (gitignore · PC 마다 다시 만듦)
@@ -288,7 +332,7 @@ $env:PYTHONUTF8=1
 |---|---|---|---|
 | 0 | `ollama pull gemma4:e4b` · `ollama pull qwen3.5:4b` · `ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0`(멈추면 함정 24) · 루트 `.env` 의 `LANGSMITH_TRACING=true` · `ollama ps` 로 GPU 비우기 · 10주차 봇 · 다른 PC 의 같은 봇 끄기 | `ollama list` 에 세 줄 | SPEC 2-2절 · README 5-2 |
 | 1 | `python build_index.py --check` | 15항목 ✅ (임베딩 없음) | 사례집 PDF 가 없으면 위 «문서 받기» |
-| 2 | `python tests/offline_check.py` | `ALL OK` (40항목 · 모델 없음) | 패키지 버전 차이 — 메인 PC 는 Python 3.13 · 이 검사는 3.11 에서 돌렸음 |
+| 2 | `python tests/offline_check.py` | `ALL OK` (지금 96항목 · 처음엔 40 · 모델 없음) | 패키지 버전 차이 — 메인 PC 는 Python 3.13 · 이 검사는 3.11 에서 돌렸음 |
 | 3 | `python build_index.py` | `✅ 저장` + 되읽기 확인 줄에 «안경·선글라스 p.31» · `index_recycle/manifest.json` 생김 | 한글 경로면 `index.bytes` 로 저장되는 것이 정상 |
 | 4 | `python rag_backend.py "뽁뽁이는 어떻게 버려요?"` · `검색 "선글라스"` · `비교 "마트 영수증은 종이로 버려도 돼?"` | 검색 1~3위에 정답 품목 · 답 · 근거 줄 | 검색이 엉뚱하면 임베딩 모델 · manifest 부터 |
 | 5 | `python evaluate.py answer --ids scratch` | 10주차와 같은 6문항 — **6/6 이 나오는지** (CONTEXT 부록 C 와 비교) | 6/6 이 아니면 분할이 바뀐 영향 — 어느 문항인지 `eval_results/` 에서 확인 |
