@@ -42,6 +42,7 @@ class FakeChat(BaseChatModel):
     reasoning: object = None
     mode: str = "normal"
     label: str = "아이스팩"          # 사진이 들어오면 이 이름을 돌려준다 (가짜 비전 모델)
+    rewrite: str = "보조배터리는 어떻게 버리나요?"   # 이어 묻기 풀어 쓰기 요청에 돌려줄 질문
     @property
     def _llm_type(self): return "fake"
     def _generate(self, messages, stop=None, run_manager=None, **kw):
@@ -49,7 +50,8 @@ class FakeChat(BaseChatModel):
         if any(isinstance(m.content, list) and any(p.get("type") == "image_url" for p in m.content) for m in messages):
             return ChatResult(generations=[ChatGeneration(message=AIMessage(content=self.label))])
         text = "\n".join(m.content for m in messages)
-        if "검색 질문 3개" in text: out = "1. 에어캡 배출 방법\n- 완충재 비닐류 배출\n포장재 분리배출"
+        if "앞 대화 없이도 이해되는" in text: out = self.rewrite + "\n(설명 줄은 버려져야 함)"
+        elif "검색 질문 3개" in text: out = "1. 에어캡 배출 방법\n- 완충재 비닐류 배출\n포장재 분리배출"
         elif "<근거>" in text:
             q = text.rsplit("질문:", 1)[1]
             if "강남구" in q or "무시하고" in q: out = "자료에서 찾지 못했습니다."
@@ -93,6 +95,27 @@ with collect_runs() as cb: ans_b, docs_b, _ = rb.ask("뽁뽁이는 어떻게 버
 T([c.name for c in cb.traced_runs[0].child_runs[0].child_runs] == [], "basic: 다시 쓰기 LLM 호출 없음")
 with collect_runs() as cb: p, _ = rb.ask_plain("영수증?")
 T(cb.traced_runs[0].name == "recycle-plain" and "no-rag" in cb.traced_runs[0].tags, "ask_plain → recycle-plain · no-rag")
+print("== 이어 묻기 (rag_backend) ==")
+H1 = [("건전지는 어떻게 버려요?", "전용 수거함에 배출합니다.")]
+T(not rb.needs_context("그럼 보조배터리는요?", []) and rb.needs_context("그럼 보조배터리는요?", H1) and not rb.needs_context("보조배터리는요?", H1),
+  "needs_context: 앞 대화가 있고 «그럼 · 그거 …» 가 있을 때만")
+T(rb.keeps_topic("그럼 보조배터리는요?", "보조배터리는 어떻게 버리나요?") and not rb.keeps_topic("그럼 보조배터리는요?", "건전지는 어떻게 버리나요?")
+  and rb.keeps_topic("그거는?", "아무 질문") and rb._words("그거 테이프는 떼야 돼?") == {"테이프", "떼야"},
+  "keeps_topic: 조사를 떼고 원래 낱말이 남았나 · 가리키는 말만 있으면 통과")
+with collect_runs() as cb: fo = rb.ask_full("그럼 보조배터리는요?", {"slack_user": "U1"}, history=H1)
+root = cb.traced_runs[0]; kids = [c.name for c in root.child_runs]
+T(fo["question"] == "보조배터리는 어떻게 버리나요?" and kids == ["contextualize", "RecycleRetriever", "generate"], f"이어 묻기 trace: {root.name} → {kids} · «{fo['question']}»")
+T("follow-up" in root.tags and root.extra["metadata"]["history_turns"] == 1 and root.child_runs[1].inputs.get("query") == fo["question"],
+  "follow-up 태그 · history_turns · 검색어 = 풀어 쓴 질문")
+rb.get_llm().rewrite = "건전지는 어떻게 버리나요?"            # 주제를 바꿔 버린 다시 쓰기
+fo2 = rb.ask_full("그럼 보조배터리는요?", history=H1)
+T(fo2["question"] == "그럼 보조배터리는요?", "안전망: 원래 낱말이 사라지면 원문 그대로")
+rb.get_llm().rewrite = "보조배터리는 어떻게 버리나요?"
+with collect_runs() as cb: fo3 = rb.ask_full("보조배터리는 어떻게 버려요?", history=H1)
+T(fo3["question"] == "보조배터리는 어떻게 버려요?" and [c.name for c in cb.traced_runs[0].child_runs] == ["RecycleRetriever", "generate"],
+  "가리키는 말이 없으면 다시 쓰지 않음 (LLM 호출 없음)")
+a3 = rb.ask("뽁뽁이는 어떻게 버려요?"); T(len(a3) == 3 and isinstance(a3[2], float), "ask() 는 그대로 (답, 근거, 초) — 평가 스크립트용")
+
 with collect_runs() as cb: w = rb.warmup()
 T(isinstance(w, float), f"warmup {w:.2f}초")
 T(rb.is_not_found("자료에서 찾지 못했습니다.") and not rb.is_not_found("가" * 70 + "찾지 못했"), "is_not_found")
@@ -192,6 +215,27 @@ docs2 = [d for d in rb.get_store().docstore._dict.values()]
 old = next(d for d in docs2 if d.metadata["year"] == 2018 and "item" in d.metadata); new = next(d for d in docs2 if d.metadata["year"] == 2026)
 T(s.MIXED_NOTE in s.rag_text("비닐류로 배출합니다.", [old, new], 0.5, False) and s.MIXED_NOTE not in s.rag_text("비닐류", [old, old], 0.5, False), "연도 섞임 안내 줄 · 근거 중복 제거")
 T(s.rag_text("x", [old, old], 0.5, False).count(rb.source_of(old)) == 1, "같은 출처는 한 번만")
+
+print("== slack 이어 묻기 ==")
+s._memory.clear()
+c1 = run("<@UBOT> 건전지 어떻게 버려?", ts="200.0")
+c2 = run("<@UBOT> 그럼 보조배터리는요?", ts="200.5", thread_ts="200.0")
+T("🔗" not in c1[1][1]["text"] and c2[1][1]["text"].startswith("🔗 앞 대화로 *«보조배터리는 어떻게 버리나요?»*") and "📚 *근거*" in c2[1][1]["text"],
+  "같은 스레드: 🔗 풀어 쓴 질문 + 답 + 📚 근거"); print("     ", c2[1][1]["text"].replace("\n", " ⏎ ")[:200])
+c3 = run("<@UBOT> 그럼 보조배터리는요?", ts="300.0")
+T("🔗" not in c3[1][1]["text"], "다른 스레드는 앞 대화를 모름")
+T([q for q, _ in s.history_of("C1-200.0")] == ["건전지 어떻게 버려?", "보조배터리는 어떻게 버리나요?"], "기억에는 풀어 쓴 질문으로 적힘")
+for i in range(5): s.remember("C1-200.0", f"q{i}", "a")
+T([q for q, _ in s.history_of("C1-200.0")] == ["q2", "q3", "q4"], f"기억 상한: 스레드마다 최근 {rb.HISTORY_TURNS}번")
+keep_max = s.MAX_THREADS; s.MAX_THREADS = 2
+for k in ("k1", "k2", "k3"): s.remember(k, "q", "a")
+T(list(s._memory) == ["k2", "k3"], "기억 상한: 스레드 수를 넘으면 오래된 스레드부터 잊음")
+s.MAX_THREADS = keep_max; s._memory.clear()
+orig_download = s.download; s.download = lambda f, c: img_bytes(); rb.get_llm().rewrite = "아이스팩 뚜껑은 어떻게 버리나요?"
+run("<@UBOT>", ts="400.0", files=[{"id": "F1", "mimetype": "image/png", "size": 1, "url_private_download": "x"}])
+c4 = run("<@UBOT> 그럼 그거 뚜껑은?", ts="400.5", thread_ts="400.0")
+T(s.history_of("C1-400.0")[0][0] == "사진 속 물건 «아이스팩» 은 어떻게 버려요?" and "«아이스팩 뚜껑은 어떻게 버리나요?»" in c4[1][1]["text"], "사진 다음에도 이어 묻기")
+s.download = orig_download; rb.get_llm().rewrite = "보조배터리는 어떻게 버리나요?"; s._memory.clear()
 
 print("== slack 사진 ==")
 from unittest import mock

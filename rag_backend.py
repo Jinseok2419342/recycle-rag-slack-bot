@@ -34,6 +34,7 @@
     python rag_backend.py 검색 "뽁뽁이"                          # 검색만
     python rag_backend.py 비교 "마트 영수증은 종이로 버려도 돼?"    # RAG 없이 vs RAG 로
     python rag_backend.py 사진 photos/c2.jpg                     # 사진으로 (뒤에 글을 덧붙이면 힌트)
+    python rag_backend.py 대화 "건전지 어떻게 버려?" "그럼 그거 …"  # 같은 스레드처럼 이어 묻기 (질문 없이 주면 직접 입력)
     python rag_backend.py --strategy multiquery --year-bonus 0.05 "생수병은 어떻게 버려요?"
 """
 
@@ -266,35 +267,102 @@ def mixed_years(docs: list[Document]) -> bool:
     return any(y >= YEAR_RECENT for y in years) and any(y < YEAR_RECENT for y in years)
 
 
+# ── 4-0. 이어 묻기 — 같은 스레드의 앞 대화로 «그럼 · 그거» 질문을 풀어 쓴다 ★ ─────────
+#   13주차 기준 코드(slack_bot/bot_graph.py 의 contextualize)와 같은 방식 — 수업에서 소형 모델로 실측해 다듬은 장치 두 개:
+#   ① «그럼 · 그거 · 아까 …» 가 있을 때만 다시 쓴다. 혼자서도 완전한 질문까지 다시 쓰게 하면 앞 대화의 주제를 끌고 와 질문이 바뀐다
+#   ② 다시 쓴 질문에 원래 질문의 낱말이 하나도 없으면 주제가 바뀐 것 → 원문을 쓴다
+#   ⚠️ 예시에 questions.py 평가 문항의 품목을 넣지 말 것 (건전지 · 보조배터리 · 스티로폼 은 평가 세트에 없음 · 함정 9)
+FOLLOW_UP = ("그럼", "그러면", "그거", "그건", "그것", "그게", "거기", "그때", "그 ", "아까", "방금", "위에", "이거", "이건", "저거")
+HISTORY_TURNS = 3                    # 앞 대화는 최근 3번(질문 + 답)까지만 본다
+CONTEXT_PROMPT = ChatPromptTemplate.from_template(
+    "아래는 분리배출 안내 슬랙 스레드의 앞 대화다.\n{history}\n\n"
+    "마지막 질문을 앞 대화 없이도 이해되는 한 문장 질문으로 다시 써라.\n"
+    "규칙: 마지막 질문이 묻는 주제는 절대 바꾸지 마라. 앞 대화는 '그럼 · 그거 · 거기' 같은 말이 "
+    "가리키는 것을 채울 때만 쓴다. 질문 한 문장만 출력하라.\n"
+    "예) 앞: '건전지는 어떻게 버려요?' / 마지막: '그럼 보조배터리는요?' → '보조배터리는 어떻게 버리나요?'\n"
+    "예) 앞: '스티로폼 상자는 어떻게 버려요?' / 마지막: '그거 테이프는 떼야 돼?' → '스티로폼 상자에 붙은 테이프는 떼야 하나요?'\n"
+    "마지막 질문: {q}")
+_JOSA = "은는이가을를요도만에의랑과와로"
+
+
+def needs_context(question: str, history) -> bool:
+    """앞 대화가 있고, 질문에 앞을 가리키는 말이 있을 때만 다시 쓴다 (장치 ①)."""
+    return bool(history) and any(k in question for k in FOLLOW_UP)
+
+
+def _words(text: str) -> set[str]:
+    """비교할 낱말 — 가리키는 말(그거 · 그럼 …)로 시작하는 낱말은 빼고, 끝의 조사는 떼어 낸다 («보조배터리는요» → «보조배터리»)."""
+    out = set()
+    for w in re.findall(r"[가-힣A-Za-z0-9]{2,}", text):
+        if any(w.startswith(k.strip()) for k in FOLLOW_UP if len(k.strip()) >= 2):
+            continue
+        while len(w) > 2 and w[-1] in _JOSA:
+            w = w[:-1]
+        out.add(w)
+    return out
+
+
+def keeps_topic(question: str, rewritten: str) -> bool:
+    """장치 ② — 원래 질문의 낱말이 다시 쓴 질문에 하나라도 남았나 (원래 질문에 낱말이 없으면 통과)."""
+    words = _words(question)
+    return not words or any(w in rewritten for w in words)
+
+
+def _contextualize(inputs: dict, config) -> str:
+    """⚠️ 인자 이름이 꼭 config 여야 RunnableLambda 가 실행 설정(같은 trace)을 넘겨준다 — 이 안에서는 config 모듈을 쓰지 않는다 (함정 26)."""
+    q = inputs["question"]
+    lines = "\n".join(f"사람: {hq[:200]}\n봇: {ha[:200]}" for hq, ha in inputs["history"][-HISTORY_TURNS:])
+    out = (CONTEXT_PROMPT | get_llm() | StrOutputParser()).invoke({"history": lines, "q": q}, config=config).strip()
+    cand = (out.splitlines() or [q])[0].strip().strip("'\"«»")
+    return cand if cand and keeps_topic(q, cand) else q
+
+
+contextualize_run = RunnableLambda(_contextualize, name="contextualize")
+
+
 # ── 4. RAG 한 번 = LangSmith trace 한 건 ★ ──────────────────────────
 def _rag(inputs: dict, config) -> dict:
-    """① 검색 → ② 근거를 붙여 생성.  config 를 넘겨야 두 단계가 한 trace 안에 묶인다."""
+    """⓪ (이어 묻기면) 질문 풀어 쓰기 → ① 검색 → ② 근거를 붙여 생성.  config 를 넘겨야 단계들이 한 trace 안에 묶인다."""
+    question = inputs["question"]
+    if needs_context(question, inputs.get("history")):
+        question = contextualize_run.invoke({"question": question, "history": inputs["history"]}, config=config)   # ⓪
     retriever = RecycleRetriever(strategy=inputs["strategy"], year_bonus=inputs["year_bonus"])
-    docs = retriever.invoke(inputs["question"], config=config)                                  # ①
+    docs = retriever.invoke(question, config=config)                                            # ①
     prompt = RAG_PROMPTS[inputs.get("prompt", "base")]
     chain = (prompt | get_llm() | StrOutputParser()).with_config(run_name="generate")
-    answer = chain.invoke({"context": format_context(docs), "question": inputs["question"]}, config=config)   # ②
-    return {"answer": answer, "docs": docs}
+    answer = chain.invoke({"context": format_context(docs), "question": question}, config=config)   # ②
+    return {"answer": answer, "docs": docs, "question": question}
 
 
 rag_run = RunnableLambda(_rag, name="recycle-rag")
 
 
-def ask(question: str, meta: dict | None = None, strategy: str | None = None,
-        year_bonus: float | None = None, tags: list[str] | None = None) -> tuple[str, list[Document], float]:
-    """질문 하나를 RAG 로 답하고 (답, 근거 청크, 걸린 초) 를 돌려준다."""
+def ask_full(question: str, meta: dict | None = None, strategy: str | None = None,
+             year_bonus: float | None = None, tags: list[str] | None = None,
+             history: list[tuple[str, str]] | None = None) -> dict:
+    """질문 하나를 RAG 로 답한다 → {answer, docs, sec, question(풀어 쓴 질문 · 이어 묻기가 아니면 원문)}.
+    history = 같은 스레드의 앞 대화 [(질문, 답), …] — 슬랙 봇이 스레드마다 들고 있다가 넘긴다."""
     strategy, year_bonus = _resolve(strategy, year_bonus)
     start = time.perf_counter()
     out = rag_run.invoke(
-        {"question": question, "strategy": strategy, "year_bonus": year_bonus, "prompt": PROMPT_VARIANT},
+        {"question": question, "strategy": strategy, "year_bonus": year_bonus, "prompt": PROMPT_VARIANT,
+         "history": list(history or [])},
         config={
             "run_name": "recycle-rag",
-            "tags": [TAG, "rag", strategy, *(tags or [])],
+            "tags": [TAG, "rag", strategy, *(["follow-up"] if needs_context(question, history) else []), *(tags or [])],
             "metadata": {"model": MODEL, "embed_model": EMBED_MODEL, "strategy": strategy,
-                         "year_bonus": year_bonus, "top_k": TOP_K, "prompt": PROMPT_VARIANT, **(meta or {})},
+                         "year_bonus": year_bonus, "top_k": TOP_K, "prompt": PROMPT_VARIANT,
+                         "history_turns": len(history or []), **(meta or {})},
         },
     )
-    return out["answer"], out["docs"], time.perf_counter() - start
+    return {**out, "sec": time.perf_counter() - start}
+
+
+def ask(question: str, meta: dict | None = None, strategy: str | None = None,
+        year_bonus: float | None = None, tags: list[str] | None = None) -> tuple[str, list[Document], float]:
+    """질문 하나를 RAG 로 답하고 (답, 근거 청크, 걸린 초) 를 돌려준다. (앞 대화 없이 — 평가 · 터미널용)"""
+    out = ask_full(question, meta, strategy, year_bonus, tags)
+    return out["answer"], out["docs"], out["sec"]
 
 
 def ask_plain(question: str, meta: dict | None = None, tags: list[str] | None = None) -> tuple[str, float]:
@@ -575,6 +643,49 @@ def main_photo(path: str, hint: str, strategy: str, year_bonus: float) -> None:
         print("   → 슬랙에서는 후보만 보여 주고 되묻기: " + " / ".join(other_names(out["docs"])))
 
 
+def main_chat(questions: list[str], strategy: str, year_bonus: float) -> None:
+    """python rag_backend.py 대화 "뽁뽁이 어떻게 버려?" "그럼 그거 뜯어서 버려야 돼?"
+    질문들을 **같은 스레드**처럼 차례로 묻는다 (앞 대화를 기억 — 슬랙 봇과 같은 방식). 질문을 안 주면 직접 입력 · 빈 줄이면 끝."""
+    print("=" * 60)
+    print(f"대화   : 같은 스레드로 이어서 묻기 (앞 대화 최근 {HISTORY_TURNS}번까지 기억)")
+    print(f"인덱스 : {INDEX_DIR.name}  (임베딩 {EMBED_MODEL}) · 생성 {MODEL}")
+    print(f"검색   : {strategy} · year_bonus {year_bonus}")
+    print("=" * 60)
+    interactive = not questions
+    history: list[tuple[str, str]] = []
+    turn = 0
+    while True:
+        if interactive:
+            try:
+                q = input("\n질문 (빈 줄이면 끝) > ").strip()
+            except EOFError:
+                q = ""
+        else:
+            q = questions[turn] if turn < len(questions) else ""
+        if not q:
+            break
+        turn += 1
+        try:
+            out = ask_full(q, {"source": "terminal"}, strategy, year_bonus, history=history)
+        except Exception as e:
+            print(f"[RAG] 실패 — {type(e).__name__}: {e}  → 'ollama serve' 가 떠 있나?")
+            return
+        path = ("contextualize → " if needs_context(q, history) else "") + "RecycleRetriever → generate"
+        print(f"\n[{turn}] 질문 : {q}")
+        if out["question"] != q:
+            print(f"    🔗 앞 대화로 풀어 쓴 질문 : {out['question']}")
+        elif needs_context(q, history):
+            print("    🔗 (앞을 가리키는 말이 있어 풀어 쓰려 했지만 주제가 바뀌어 원문 그대로)")
+        print(f"    경로 : {path}  ({out['sec']:.1f}초)")
+        print(f"    답   : {out['answer'].strip()}")
+        if is_not_found(out["answer"]):
+            print(f"    ({NOT_FOUND} — 슬랙에서는 근거를 숨기고 구청 안내를 붙인다)")
+        else:
+            for i, d in enumerate(out["docs"], 1):
+                print(f"    📚 {i}. {d.metadata['distance']:.3f}  {source_of(d)}")
+        history.append((out["question"], out["answer"].strip()))
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="분리배출 RAG — 터미널 확인")
@@ -583,9 +694,13 @@ def main() -> None:
     ap.add_argument("words", nargs="*")
     args = ap.parse_args()
     words, mode = list(args.words), "rag"
-    if words and words[0] in ("검색", "비교", "사진"):
+    if words and words[0] in ("검색", "비교", "사진", "대화"):
         mode = words.pop(0)
     strategy, year_bonus = _resolve(args.strategy, args.year_bonus)
+    if mode == "대화":
+        main_chat(words, strategy, year_bonus)
+        flush_traces()
+        return
     if mode == "사진":
         if not words:
             raise SystemExit("사용법: python rag_backend.py 사진 photos/c2.jpg [같이 쓸 글]")

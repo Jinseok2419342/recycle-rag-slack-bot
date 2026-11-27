@@ -4,6 +4,7 @@
     @버릴지도 검색 뽁뽁이                        → 검색만 — 어떤 근거가 뽑혔나
     @버릴지도 비교 마트 영수증 종이로 버려도 돼?    → RAG 없이 vs RAG 로 — 나란히 본다
     (DM) 핫팩은?                                → 멘션 없이 1:1 로도 같은 방식
+    (같은 스레드) @버릴지도 그럼 그거 뚜껑은?      → 🔗 스레드마다 앞 대화를 기억해 «그거» 를 풀어 쓴 뒤 찾아 답
     @버릴지도 + 사진 (DM 은 사진만)               → 📷 사진에 품목 이름을 붙이고 → 그 이름으로 문서에서 찾아 답
                                                   (슬랙 앱 봇 토큰에 files:read 권한이 있어야 사진을 받는다)
 
@@ -53,9 +54,11 @@ from slack_sdk.errors import SlackApiError  # noqa: E402
 
 # ★ 두뇌 — 봇(입구 · 출구)과 RAG 가 나뉘어 있어서 이 줄만 바꾸면 다른 두뇌가 된다
 from rag_backend import (  # noqa: E402
-    PhotoError, ask, ask_photo, ask_plain, is_not_found, mixed_years, other_names, read_manifest, search,
-    source_of, warmup,
+    HISTORY_TURNS, PhotoError, ask_full, ask_photo, ask_plain, is_not_found, mixed_years, other_names,
+    read_manifest, search, source_of, warmup,
 )
+from collections import OrderedDict  # noqa: E402
+from threading import Lock  # noqa: E402
 
 SEARCH_WORDS = ("검색", "search")
 COMPARE_WORDS = ("비교", "vs")
@@ -68,6 +71,7 @@ USAGE = (
     "• `@버릴지도 검색 뽁뽁이` — 어떤 근거가 뽑혔는지만 보여 줍니다\n"
     "• `@버릴지도 비교 마트 영수증 종이로 버려도 돼?` — 문서 없이 답한 것과 나란히\n"
     "• 📷 이름을 모르면 사진을 올리며 `@버릴지도` — 사진 속 물건 이름으로 문서에서 찾아 답합니다\n"
+    "• 🔗 같은 스레드에서는 `@버릴지도 그럼 그거 뚜껑은?` 처럼 이어서 물어도 앞 대화로 알아듣습니다\n"
     "• DM 으로는 멘션 없이 `핫팩은?` 처럼 바로 묻거나 사진만 보내도 됩니다"
 )
 HOLDER = "⏳ 분리배출 문서에서 찾는 중…"
@@ -79,6 +83,37 @@ NOT_FOUND_TEXT = (f"{NOT_FOUND} — 지역별 배출 요일 · 수수료처럼 �
 MIXED_NOTE = ("ℹ️ 2018 가이드라인과 2026 사례집이 함께 근거로 쓰였습니다 — "
               "내용이 다르면 최신인 사례집(2026)을 따르세요.")
 FAIL_TEXT = "⚠️ 답을 만들지 못했습니다. 잠시 뒤 다시 물어봐 주세요."
+
+
+# ── 0. 스레드마다 기억 — 같은 스레드의 «그럼 · 그거» 를 앞 대화로 풀어 답한다 ★ ────────
+#   키 = «채널-스레드ts» (13주차 기준 코드 slack_bot 의 thread_id 와 같은 모양).
+#   기억은 이 프로그램 안에만 둔다 — 봇을 껐다 켜면 사라진다(기준 코드의 InMemorySaver 와 같음). 슬랙 권한을 더 받지 않는다.
+#   질문은 풀어 쓴 질문으로 적어 둔다 — 다음 이어 묻기가 «그거» 의 «그거» 를 다시 풀 필요가 없게.
+MAX_THREADS = 500                       # 오래된 스레드부터 잊는다 (메모리가 끝없이 늘지 않게)
+_memory: "OrderedDict[str, list[tuple[str, str]]]" = OrderedDict()
+_memory_lock = Lock()
+
+
+def thread_key(channel: str, thread: str) -> str:
+    return f"{channel}-{thread}"
+
+
+def history_of(key: str) -> list[tuple[str, str]]:
+    with _memory_lock:
+        return list(_memory.get(key, []))
+
+
+def remember(key: str, question: str, answer: str) -> None:
+    with _memory_lock:
+        turns = _memory.pop(key, [])
+        _memory[key] = (turns + [(question, answer)])[-HISTORY_TURNS:]
+        while len(_memory) > MAX_THREADS:
+            _memory.popitem(last=False)
+
+
+def follow_line(asked: str, understood: str) -> str:
+    """이어 묻기로 질문을 풀어 썼으면 무엇으로 알아들었는지 한 줄 — 틀렸으면 사용자가 바로 알 수 있게."""
+    return f"🔗 앞 대화로 *«{escape(understood)}»* 로 이해했어요\n" if understood != asked else ""
 
 
 # ── 1. 메시지 → (모드, 질문) ─────────────────────────────────────
@@ -196,6 +231,7 @@ def answer(event: dict, client) -> None:
         return client.chat_postMessage(channel=channel, thread_ts=thread, text=text)
 
     meta = {"slack_user": user, "slack_channel": channel, "source": "slack"}
+    key = thread_key(channel, thread)
 
     # ── 사진 — 같이 쓴 글은 힌트로 (검색 · 비교 모드는 글 질문에서만) ──
     if image:
@@ -210,6 +246,8 @@ def answer(event: dict, client) -> None:
         try:
             out = ask_photo(download(image, client), hint, meta)
             text = photo_text(out)
+            if out["decision"] == "answer":          # 사진 다음의 «그럼 그거 뚜껑은?» 도 풀 수 있게
+                remember(key, f"사진 속 물건 «{out['label']}» 은 어떻게 버려요?", out["answer"].strip())
             print(f"  답함 → {out['sec']:.1f}초  이름 «{out['label']}» · {out['decision']} · "
                   f"근거 chunk_id={[d.metadata.get('chunk_id') for d in out['docs']]}")
         except PhotoError as e:
@@ -251,8 +289,12 @@ def answer(event: dict, client) -> None:
     # ── RAG — ① 자리 잡기 → ② 찾아서 답하기 → ③ 자리를 답으로 ★ ──
     holder = post(HOLDER)
     try:
-        ans, docs, sec = ask(question, meta)
-        text = rag_text(ans, docs, sec, compare=(mode == "compare"))
+        out = ask_full(question, meta, history=history_of(key))     # ★ 같은 스레드의 앞 대화를 함께
+        ans, docs, sec = out["answer"], out["docs"], out["sec"]
+        text = follow_line(question, out["question"]) + rag_text(ans, docs, sec, compare=(mode == "compare"))
+        remember(key, out["question"], ans.strip())
+        if out["question"] != question:
+            print(f"  이어 묻기 → {out['question']!r}")
         print(f"  답함 → {sec:.1f}초  근거 chunk_id={[d.metadata.get('chunk_id') for d in docs]}")
     except Exception as e:
         log_fail("rag", e)
@@ -299,7 +341,7 @@ def main() -> None:
     print(f"검색      : {STRATEGY} · year_bonus {YEAR_BONUS}")
     print(f"LangSmith : {os.environ['LANGSMITH_PROJECT']}  (추적 {'켜짐 ✅' if tracing else '꺼짐'})")
     if not tracing:
-        print("⚠️ LANGSMITH_TRACING 이 true 가 아닙니다 — 추적 캡처는 필수 제출물입니다 (루트 .env).")
+        print("ℹ️ LANGSMITH_TRACING 이 true 가 아닙니다 — 추적을 보려면 루트 .env 에 LANGSMITH_TRACING=true (11-25 부터 요건 아님 · 선택).")
 
     # ★ 켜기 전에 두 모델을 올린다 — 첫 답 20초(모델 로딩)를 여기서 미리 치르고, 설정도 확인된다
     print("모델 올리는 중… (처음엔 20초쯤)")

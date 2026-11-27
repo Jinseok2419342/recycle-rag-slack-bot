@@ -23,3 +23,5 @@ data/분리배출_QA사례100_2026.pdf
 
 # 캡처 원본을 잠시 두는 곳 — 확인한 뒤 docs/*.png 로 옮김
 /captures_raw/
+
+/old_codes
