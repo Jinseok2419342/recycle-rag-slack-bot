@@ -245,7 +245,13 @@ ollama pull hf.co/mykor/KURE-v1-gguf:Q8_0    # 임베딩 0.6 GB
 
 ![trace — RecycleRetriever](docs/trace-retriever.png)
 
-**③ 전처리도 추적** — 인덱스를 만들 때(`build-chunks` · `mode structure`) 정리(`clean-pages`)와
+**③ 📷 사진 질문 1건 = trace 1건** (2026-11-27 · 위 슬랙 선글라스 사진) — `recycle-photo` 아래 `describe-photo`(qwen3.5:4b · 2.98초) → `RecycleRetriever` → `generate`(gemma4:e4b · 1.31초).
+입력에는 사진 대신 **«<image 63,514 bytes — 추적에 올리지 않음>»** 만 남고(사진은 LangSmith 에 올리지 않음), 출력에 사진 모델의 설명 줄(`desc`) · 고른 이름(`label` «안경·선글라스») · 검색어 · 답이 남습니다.
+«사진을 잘못 봤나 / 이름은 맞는데 검색이 틀렸나 / 생성이 틀렸나» 를 여기서 가립니다.
+
+![trace — recycle-photo](docs/trace-photo.png)
+
+**④ 전처리도 추적** — 인덱스를 만들 때(`build-chunks` · `mode structure`) 정리(`clean-pages`)와
 구역별 분할(`split-guideline` · `split-faq` · `split-item-dict` · `split-qa-cases`)이 run 으로 남고, 결과는 `count 456` 청크 (2026-11-17 trace · 모델과 무관).
 
 ![trace — build-chunks](docs/trace-build.png)
@@ -536,7 +542,7 @@ Bolt app is running!
 - [x] 최종 산출물(코드) — 실제 모델 · 실제 슬랙으로 확인 (2026-11-17 · 사진 기능 2026-11-24)
 - [x] 평가 실측 → 기본값 채택 — 분할 · 검색 전략 · `year_bonus` · 프롬프트 · **생성 모델(gemma3:4b 대비)** · **사진 모델** (`eval_results/` · CONTEXT 부록 D · E · G)
 - [x] `README.md` 6항목
-- ~~LangSmith 추적 캡처(필수)~~ → 11-25 에 요건에서 빠짐 — 추가 자료로 4번에 trace 3장(이어 묻기 · 검색 metadata 2026-11-27 · 전처리 2026-11-17) · 2번에 슬랙 사진 · 비교 화면(2026-11-27)
+- ~~LangSmith 추적 캡처(필수)~~ → 11-25 에 요건에서 빠짐 — 추가 자료로 4번에 trace 4장(이어 묻기 · 검색 metadata · 사진 2026-11-27 · 전처리 2026-11-17) · 2번에 슬랙 사진 · 비교 화면(2026-11-27)
 
 ### 최종 제출 — 제출 전 마지막 확인 (11-25 변경 · 마감 12/4 3교시 전)
 
