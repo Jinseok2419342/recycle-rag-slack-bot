@@ -419,7 +419,8 @@ $env:PYTHONUTF8=1
     측정 전에 봇을 끄고 `ollama ps` → `ollama stop`. 측정 출력은 파이프로 받으면 끝날 때 한꺼번에 나옴(`python -u`)
 26. **`RunnableLambda` 함수의 `config` 인자가 `config` 모듈을 가림** — `_photo(inputs, config)` 안에서 `config.PHOTO_MODE` 를 쓰면 dict 오류. 모듈 값은 `ask_photo` 에서 inputs 로 넘김(2026-11-24 실제로 밟음 · 그 측정 1회 무효)
 27. **작은 비전 모델은 지시문의 예시를 베낌** — `qwen3.5:0.8b` 는 예시 «건전지» 를 거의 모든 사진에, 목록에서 고르게 하면 첫 항목만 반복. 사진 지시문에 예시를 넣지 말 것(v2)
-28. **이 PC(2026-11-24)는 CLI `git push` 가 막힘**(GitHub 로그인 없음 · Credential Manager 가 창을 못 띄움) — 커밋은 CLI 로, push 는 사용자가 **GitHub Desktop 의 Push origin**.
+28. ✅ **2026-11-27 사용자가 GitHub 에 로그인 → CLI `git push origin photo-feature` · `git push origin photo-feature:main` 이 됨** (커밋 `afc2beb`). 다시 막히면 아래 방법.
+    (옛 기록) **이 PC(2026-11-24)는 CLI `git push` 가 막힘**(GitHub 로그인 없음 · Credential Manager 가 창을 못 띄움) — 커밋은 CLI 로, push 는 사용자가 **GitHub Desktop 의 Push origin**.
     `main` 반영도 GitHub Desktop 에서(또는 사용자가 터미널에서 `git push origin photo-feature:main`)
 29. **수업 저장소의 루트 `.env` 를 복사하면 `LANGSMITH_AGENT_ID` · `LANGSMITH_AGENT_ENVIRONMENT`(7주차 «에이전트 주소» 실습)가 같이 옴** —
     langsmith 0.16 은 프로젝트(`config.py` 가 정함)와 주소가 둘 다 있으면 `EnvAddressError` 로 **trace 를 버림**(콘솔에 «Error in RunCollectorCallbackHandler…» · 
